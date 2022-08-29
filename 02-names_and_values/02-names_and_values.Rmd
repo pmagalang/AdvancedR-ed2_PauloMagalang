@@ -319,7 +319,10 @@ ref(c)
 
 ```{r}
 x <- list(1:10)
+tracemem(x)
 x[[2]] <- x
+untracemem(x)
+
 ```
 
 `x[[2]]` becomes a nested list.
