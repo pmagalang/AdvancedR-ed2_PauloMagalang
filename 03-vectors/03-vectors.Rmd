@@ -282,6 +282,154 @@ But when you print that object you don’t see the comment attribute. Why? Is th
 
 Seems like `comment()` is a function and the `comment` attribute is not printed to the console (from `?comment`).
 
+# 3.4 S3 Atomic Vectors
+
+* `class` vector attribute turns an object to an S3 object, behaves differently when passed into a generic
+function
+
+## 3.4.1 Factors
+
+* factors are vectors that contain predefined values, categorical data
+
+* factors built on top of int vectors with:
+
+  - factor: a `class` that makes it behave differently from int vectors
+  
+  - levels: defines the values stored
+
+```{r}
+x <- factor(c("a", "b", "b", "a"))
+x
+
+typeof(x)
+attributes(x)
+```
+
+```{r}
+sex_char <- c("m", "m", "m")
+sex_factor <- factor(sex_char, levels = c("m", "f"))
+
+table(sex_char)
+
+table(sex_factor)
+```
+
+* ordered factors: behave like regular factors but the order of levels is meaningful
+
+```{r}
+grade <- ordered(c("b", "b", "a", "c"), levels = c("c", "b", "a"))
+grade
+```
+
+* use `stringAsFactors = FALSE` to suppress base R functions that automatically coerce
+strings to factors
+
+* factors are built on top of integers, string methods will automatically coerce into
+strings; explicitly coerce factors into char if need string-like behavior
+
+## 3.4.2 Dates
+
+* built on double vectors
+
+```{r}
+today <- Sys.Date()
+
+typeof(today)
+attributes(today)
+```
+
+```{r}
+date <- as.Date("1970-02-01")
+unclass(date)
+```
+
+## 3.4.3 Date-times
+
+* two ways of storing date-time info: POSIXct and POSIXlt
+
+* POSIX: Portable Operating System Interface
+
+* ct: calendar time
+
+* lt: local time
+
+```{r}
+now_ct <- as.POSIXct("2018-08-01 22:00", tz = "UTC")
+now_ct
+
+typeof(now_ct)
+attributes(now_ct)
+```
+
+```{r}
+structure(now_ct, tzone = "Asia/Tokyo")
+structure(now_ct, tzone = "America/New_York")
+structure(now_ct, tzone = "Australia/Lord_Howe")
+structure(now_ct, tzone = "Europe/Paris")
+```
+
+## 3.4.4 Durations
+
+* difftimes: represent amount of time between pairs of dates or date-times; built on
+doubles, `units` attribute that represents the units of time
+
+```{r}
+one_week_1 <- as.difftime(1, units = "weeks")
+one_week_1
+
+typeof(one_week_1)
+attributes(one_week_1)
+
+one_week_2 <- as.difftime(7, units = "days")
+one_week_2
+
+typeof(one_week_2)
+attributes(one_week_2)
+```
+
+## 3.4.5 Exercises
+
+1. What sort of object does `table()` return? What is its type? What attributes does it have? How does the dimensionality change as you tabulate more variables?
+
+
+```{r}
+sex_char <- c("m", "m", "m")
+sex_factor <- factor(sex_char, levels = c("m", "f"))
+
+typeof(table(sex_factor)) # built on top of int vectors which is expected
+attributes(table(sex_factor)) # ldim, dimnames, dimnames$sex_factor, class
+
+
+sex_factor <- factor(sex_char, levels = c("m", "f", "a", "b", "c")) # just adding random levels
+attributes(table(sex_factor)) # dimensions increase with amount of levels defined
+```
+
+2. What happens to a factor when you modify its levels?
+
+```{r}
+f1 <- factor(letters)
+levels(f1) <- rev(levels(f1))
+```
+
+Modifying a factors levels will rearrange the vector based on the new ordering of the levels.
+
+3. What does this code do? How do `f2` and `f3` differ from `f1`?
+
+```{r}
+f2 <- rev(factor(letters))
+
+f3 <- factor(letters, levels = rev(letters)) # vector values in same order but levels are reversed
+```
+
+
+# 3.5 Lists
+
+
+
+
+
+
+
 
 
 
