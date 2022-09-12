@@ -7,7 +7,8 @@ output:
     keep_md: yes
 ---
 
-```{r}
+
+```r
 library(lobstr)
 ```
 
@@ -96,14 +97,31 @@ the matrix and dataframe are the same
 * infectious, computations involving a missing value will return another missing
 value
 
-```{r}
+
+```r
 # exceptions
 
 NA ^ 0
+```
 
+```
+## [1] 1
+```
+
+```r
 NA | TRUE
+```
 
+```
+## [1] TRUE
+```
+
+```r
 NA & FALSE
+```
+
+```
+## [1] FALSE
 ```
 
 * use `is.na()` to determine NA in a vector
@@ -128,18 +146,56 @@ in a fixed order: character -> double -> integer -> logical
 2. Test your knowledge of the vector coercion rules by predicting the output of the following 
 uses of `c()`: 
 
-```{r}
+
+```r
 c(1, FALSE) # 1, 0
+```
+
+```
+## [1] 1 0
+```
+
+```r
 c("a", 1) # "a", "1"
+```
+
+```
+## [1] "a" "1"
+```
+
+```r
 c(TRUE, 1L) # 1, 1
+```
+
+```
+## [1] 1 1
 ```
 
 3. Why is `1 == "1"` true? Why is `-1 < FALSE` true? Why is `"one" < 2` false?
 
-```{r}
+
+```r
 1 == "1" # 1 was cast into "1", "1" == "1" is true
+```
+
+```
+## [1] TRUE
+```
+
+```r
 -1 < FALSE # FALSE was cast into 0, -1 < 0 is true
+```
+
+```
+## [1] TRUE
+```
+
+```r
 "one" < 2 # 2 was cast into "2", something about ASCII values probably
+```
+
+```
+## [1] FALSE
 ```
 
 4. Why is the default missing value, `NA`, a logical vector? What's special about logical
@@ -173,16 +229,29 @@ numeric (arithmetic, comparisons).
 
 * `attributes()` and `structure()` retrieve and modify many attributes respectively
 
-```{r}
+
+```r
 a <- 1:3
 attr(a, "x") <- "abcdef"
 attr(a, "x")
+```
 
+```
+## [1] "abcdef"
+```
 
+```r
 attr(a, "y") <- 4:6
 str(attributes(a))
+```
 
+```
+## List of 2
+##  $ x: chr "abcdef"
+##  $ y: int [1:3] 4 5 6
+```
 
+```r
 # Or equivalently
 a <- structure(
   1:3, 
@@ -192,18 +261,37 @@ a <- structure(
 str(attributes(a))
 ```
 
+```
+## List of 2
+##  $ x: chr "abcdef"
+##  $ y: int [1:3] 4 5 6
+```
+
 * most attributes are lost by operations, non permanent
 
-```{r}
+
+```r
 attributes(a[1])
+```
+
+```
+## NULL
+```
+
+```r
 attributes(sum(a))
+```
+
+```
+## NULL
 ```
 
 * names and dim are attributes that are preserved
 
 ## 3.3.2 Names 
 
-```{r}
+
+```r
 # 3 ways to name a vector
 
 # When creating it: 
@@ -226,40 +314,123 @@ can be either empty strings or NA
 
 * adding `dim` attribute to a vector makes it behave like a 2D/multidim array
 
-```{r}
+
+```r
 # Two scalar arguments specify row and column sizes
 x <- matrix(1:6, nrow = 2, ncol = 3)
 x
+```
 
+```
+##      [,1] [,2] [,3]
+## [1,]    1    3    5
+## [2,]    2    4    6
+```
+
+```r
 # One vector argument to describe all dimensions
 y <- array(1:12, c(2, 3, 2))
 y
+```
 
+```
+## , , 1
+## 
+##      [,1] [,2] [,3]
+## [1,]    1    3    5
+## [2,]    2    4    6
+## 
+## , , 2
+## 
+##      [,1] [,2] [,3]
+## [1,]    7    9   11
+## [2,]    8   10   12
+```
+
+```r
 # You can also modify an object in place by setting dim()
 z <- 1:6
 dim(z) <- c(3, 2)
 z
 ```
 
-```{r}
+```
+##      [,1] [,2]
+## [1,]    1    4
+## [2,]    2    5
+## [3,]    3    6
+```
+
+
+```r
 # vector without dim attribute has NULL dimensions
 str(1:3)                   # 1d vector
+```
 
+```
+##  int [1:3] 1 2 3
+```
+
+```r
 # matrix with single row or col
 str(matrix(1:3, ncol = 1)) # column vector
-str(matrix(1:3, nrow = 1)) # row vector
+```
 
+```
+##  int [1:3, 1] 1 2 3
+```
+
+```r
+str(matrix(1:3, nrow = 1)) # row vector
+```
+
+```
+##  int [1, 1:3] 1 2 3
+```
+
+```r
 # array with single dimension
 str(array(1:3, 3))         # "array" vector
+```
+
+```
+##  int [1:3(1d)] 1 2 3
 ```
 
 ## 3.3.4 Exercises
 
 1. How is `setNames()` implemented? How is `unname()` implemented? Read the source code.
 
-```{r}
+
+```r
 setNames
+```
+
+```
+## function (object = nm, nm) 
+## {
+##     names(object) <- nm
+##     object
+## }
+## <bytecode: 0x000002bb4fd50428>
+## <environment: namespace:stats>
+```
+
+```r
 unname
+```
+
+```
+## function (obj, force = FALSE) 
+## {
+##     if (!is.null(names(obj))) 
+##         names(obj) <- NULL
+##     if (!is.null(dimnames(obj)) && (force || !is.data.frame(obj))) 
+##         dimnames(obj) <- NULL
+##     obj
+## }
+## <bytecode: 0x000002bb50107d78>
+## <environment: namespace:base>
 ```
 
 * `setNames()` uses the assignment form of `names()` to name a vector.
@@ -270,16 +441,24 @@ the assignment form of `names()` and `dimnames()` to set the name to NULL respec
 2. What does `dim()` return when applied to a 1-dimensional vector? When might you use
 `NROW()` or `NCOL()`?
 
-```{r}
+
+```r
 a <- 1:3
 dim(a) # will return NULL
+```
 
+```
+## NULL
+```
+
+```r
 # NROW and NCOL treats vectors as 1-column matrices
 ```
 
 3. How would you describe the following three objects? What makes them different from `1:5`?
 
-```{r}
+
+```r
 x1 <- array(1:5, c(1, 1, 5)) # values filled  along 3rd dimension in the array
 x2 <- array(1:5, c(1, 5, 1)) # values filled as a single row in the array
 x3 <- array(1:5, c(5, 1, 1)) # values filled as a single column in the array
@@ -289,11 +468,26 @@ x3 <- array(1:5, c(5, 1, 1)) # values filled as a single column in the array
 
 4. An early draft used this code to illustrate `structure()`:
 
-```{r}
+
+```r
 z <- structure(1:5, comment = "my attribute", comment2 = "hey")
 z
+```
 
+```
+## [1] 1 2 3 4 5
+## attr(,"comment2")
+## [1] "hey"
+```
+
+```r
 str(attributes(z)) # attribute is there but hidden
+```
+
+```
+## List of 2
+##  $ comment : chr "my attribute"
+##  $ comment2: chr "hey"
 ```
 
 But when you print that object you don’t see the comment attribute. Why? Is the attribute missing, or is there something else special about it? (Hint: try using help.)
@@ -315,28 +509,72 @@ function
   
   - levels: defines the values stored
 
-```{r}
+
+```r
 x <- factor(c("a", "b", "b", "a"))
 x
+```
 
+```
+## [1] a b b a
+## Levels: a b
+```
+
+```r
 typeof(x)
+```
+
+```
+## [1] "integer"
+```
+
+```r
 attributes(x)
 ```
 
-```{r}
+```
+## $levels
+## [1] "a" "b"
+## 
+## $class
+## [1] "factor"
+```
+
+
+```r
 sex_char <- c("m", "m", "m")
 sex_factor <- factor(sex_char, levels = c("m", "f"))
 
 table(sex_char)
+```
 
+```
+## sex_char
+## m 
+## 3
+```
+
+```r
 table(sex_factor)
+```
+
+```
+## sex_factor
+## m f 
+## 3 0
 ```
 
 * ordered factors: behave like regular factors but the order of levels is meaningful
 
-```{r}
+
+```r
 grade <- ordered(c("b", "b", "a", "c"), levels = c("c", "b", "a"))
 grade
+```
+
+```
+## [1] b b a c
+## Levels: c < b < a
 ```
 
 * use `stringAsFactors = FALSE` to suppress base R functions that automatically coerce
@@ -349,16 +587,34 @@ strings; explicitly coerce factors into char if need string-like behavior
 
 * built on double vectors
 
-```{r}
+
+```r
 today <- Sys.Date()
 
 typeof(today)
+```
+
+```
+## [1] "double"
+```
+
+```r
 attributes(today)
 ```
 
-```{r}
+```
+## $class
+## [1] "Date"
+```
+
+
+```r
 date <- as.Date("1970-02-01")
 unclass(date)
+```
+
+```
+## [1] 31
 ```
 
 ## 3.4.3 Date-times
@@ -371,19 +627,67 @@ unclass(date)
 
 * lt: local time
 
-```{r}
+
+```r
 now_ct <- as.POSIXct("2018-08-01 22:00", tz = "UTC")
 now_ct
+```
 
+```
+## [1] "2018-08-01 22:00:00 UTC"
+```
+
+```r
 typeof(now_ct)
+```
+
+```
+## [1] "double"
+```
+
+```r
 attributes(now_ct)
 ```
 
-```{r}
+```
+## $class
+## [1] "POSIXct" "POSIXt" 
+## 
+## $tzone
+## [1] "UTC"
+```
+
+
+```r
 structure(now_ct, tzone = "Asia/Tokyo")
+```
+
+```
+## [1] "2018-08-02 07:00:00 JST"
+```
+
+```r
 structure(now_ct, tzone = "America/New_York")
+```
+
+```
+## [1] "2018-08-01 18:00:00 EDT"
+```
+
+```r
 structure(now_ct, tzone = "Australia/Lord_Howe")
+```
+
+```
+## [1] "2018-08-02 08:30:00 +1030"
+```
+
+```r
 structure(now_ct, tzone = "Europe/Paris")
+```
+
+```
+## [1] "2018-08-02 CEST"
 ```
 
 ## 3.4.4 Durations
@@ -391,18 +695,63 @@ structure(now_ct, tzone = "Europe/Paris")
 * difftimes: represent amount of time between pairs of dates or date-times; built on
 doubles, `units` attribute that represents the units of time
 
-```{r}
+
+```r
 one_week_1 <- as.difftime(1, units = "weeks")
 one_week_1
+```
 
+```
+## Time difference of 1 weeks
+```
+
+```r
 typeof(one_week_1)
-attributes(one_week_1)
+```
 
+```
+## [1] "double"
+```
+
+```r
+attributes(one_week_1)
+```
+
+```
+## $class
+## [1] "difftime"
+## 
+## $units
+## [1] "weeks"
+```
+
+```r
 one_week_2 <- as.difftime(7, units = "days")
 one_week_2
+```
 
+```
+## Time difference of 7 days
+```
+
+```r
 typeof(one_week_2)
+```
+
+```
+## [1] "double"
+```
+
+```r
 attributes(one_week_2)
+```
+
+```
+## $class
+## [1] "difftime"
+## 
+## $units
+## [1] "days"
 ```
 
 ## 3.4.5 Exercises
@@ -410,21 +759,57 @@ attributes(one_week_2)
 1. What sort of object does `table()` return? What is its type? What attributes does it have? How does the dimensionality change as you tabulate more variables?
 
 
-```{r}
+
+```r
 sex_char <- c("m", "m", "m")
 sex_factor <- factor(sex_char, levels = c("m", "f"))
 
 typeof(table(sex_factor)) # built on top of int vectors which is expected
+```
+
+```
+## [1] "integer"
+```
+
+```r
 attributes(table(sex_factor)) # ldim, dimnames, dimnames$sex_factor, class
+```
 
+```
+## $dim
+## [1] 2
+## 
+## $dimnames
+## $dimnames$sex_factor
+## [1] "m" "f"
+## 
+## 
+## $class
+## [1] "table"
+```
 
+```r
 sex_factor <- factor(sex_char, levels = c("m", "f", "a", "b", "c")) # just adding random levels
 attributes(table(sex_factor)) # dimensions increase with amount of levels defined
 ```
 
+```
+## $dim
+## [1] 5
+## 
+## $dimnames
+## $dimnames$sex_factor
+## [1] "m" "f" "a" "b" "c"
+## 
+## 
+## $class
+## [1] "table"
+```
+
 2. What happens to a factor when you modify its levels?
 
-```{r}
+
+```r
 f1 <- factor(letters)
 levels(f1) <- rev(levels(f1))
 ```
@@ -433,7 +818,8 @@ Modifying a factors levels will rearrange the vector based on the new ordering o
 
 3. What does this code do? How do `f2` and `f3` differ from `f1`?
 
-```{r}
+
+```r
 f2 <- rev(factor(letters))
 
 f3 <- factor(letters, levels = rev(letters)) # vector values in same order but levels are reversed
@@ -447,7 +833,8 @@ object
 
 ## 3.5.1 Creating
 
-```{r}
+
+```r
 l1 <- list(
   1:3, 
   "a", 
@@ -456,26 +843,68 @@ l1 <- list(
 )
 
 typeof(l1)
+```
 
+```
+## [1] "list"
+```
+
+```r
 str(l1)
+```
+
+```
+## List of 4
+##  $ : int [1:3] 1 2 3
+##  $ : chr "a"
+##  $ : logi [1:3] TRUE FALSE TRUE
+##  $ : num [1:2] 2.3 5.9
 ```
 
 * lists are sometimes called recursive vectors since lists can contain othter lists
 
-```{r}
+
+```r
 l3 <- list(list(list(1)))
 str(l3)
+```
+
+```
+## List of 1
+##  $ :List of 1
+##   ..$ :List of 1
+##   .. ..$ : num 1
 ```
 
 * use `c()` to combine several lists into one list but will coerce vectors to lists
 before combining
 
-```{r}
+
+```r
 l4 <- list(list(1, 2), c(3, 4))
 l5 <- c(list(1, 2), c(3, 4))
 
 str(l4) # nested list
+```
+
+```
+## List of 2
+##  $ :List of 2
+##   ..$ : num 1
+##   ..$ : num 2
+##  $ : num [1:2] 3 4
+```
+
+```r
 str(l5) # flattened
+```
+
+```
+## List of 4
+##  $ : num 1
+##  $ : num 2
+##  $ : num 3
+##  $ : num 4
 ```
 
 ## 3.5.2 Testing and coercion
@@ -484,22 +913,54 @@ str(l5) # flattened
 
 * turn any list into an atomic vector with `unlist()`
 
-```{r}
-list(1:3)
 
+```r
+list(1:3)
+```
+
+```
+## [[1]]
+## [1] 1 2 3
+```
+
+```r
 as.list(1:3)
+```
+
+```
+## [[1]]
+## [1] 1
+## 
+## [[2]]
+## [1] 2
+## 
+## [[3]]
+## [1] 3
 ```
 
 ## 3.5.3 Matrices and arrays
 
 * `dim` attribute can create list-matrices or list-arrays
 
-```{r}
+
+```r
 l <- list(1:3, "a", TRUE, 1.0)
 dim(l) <- c(2, 2)
 l
+```
 
+```
+##      [,1]      [,2]
+## [1,] integer,3 TRUE
+## [2,] "a"       1
+```
+
+```r
 l[[1, 1]]
+```
+
+```
+## [1] 1 2 3
 ```
 
 ## 3.5.4 Exercises
@@ -519,7 +980,8 @@ doesn't `as.vector()` work?
 
 Lists are already vectors but `unlist()` will convert it to an atomic vector.
 
-```{r}
+
+```r
 l1 <- list(
   1:3, 
   "a", 
@@ -528,18 +990,54 @@ l1 <- list(
 )
 
 unlist(l1)
+```
+
+```
+## [1] "1"     "2"     "3"     "a"     "TRUE"  "FALSE" "TRUE"  "2.3"   "5.9"
+```
+
+```r
 as.vector(l1)
+```
+
+```
+## [[1]]
+## [1] 1 2 3
+## 
+## [[2]]
+## [1] "a"
+## 
+## [[3]]
+## [1]  TRUE FALSE  TRUE
+## 
+## [[4]]
+## [1] 2.3 5.9
 ```
 
 3. Compare and contrast `c()` and `unlist()` when combining a date and date-time
 into a single vector.
 
-```{r}
+
+```r
 date <- as.Date("1970-01-01")
 date_time <- as.POSIXct("1970-01-02 22:00", tz = "UTC")
 
 c(date, date_time) # time zone and time is removed when combined
+```
+
+```
+## [1] "1970-01-01" "1970-01-02"
+```
+
+```r
 unlist(list(date, date_time)) 
+```
+
+```
+## [1]      0 165600
+```
+
+```r
 # dates and date-times are internally doubles, but not sure what units
 # the values are in, seconds?
 ```
@@ -548,11 +1046,29 @@ unlist(list(date, date_time))
 
 * data frames and tibbles are built on top of lists
 
-```{r}
+
+```r
 df1 <- data.frame(x = 1:3, y = letters[1:3])
 typeof(df1)
+```
 
+```
+## [1] "list"
+```
+
+```r
 attributes(df1)
+```
+
+```
+## $names
+## [1] "x" "y"
+## 
+## $class
+## [1] "data.frame"
+## 
+## $row.names
+## [1] 1 2 3
 ```
 
 * lengths of each vector in a df must be the same
@@ -561,18 +1077,37 @@ attributes(df1)
 
 * `length()` returns # of cols in a df
 
-```{r}
+
+```r
 library(tibble)
 
 df2 <- tibble(x = 1:3, y = letters[1:3])
 typeof(df2)
+```
 
+```
+## [1] "list"
+```
+
+```r
 attributes(df2)
+```
+
+```
+## $class
+## [1] "tbl_df"     "tbl"        "data.frame"
+## 
+## $row.names
+## [1] 1 2 3
+## 
+## $names
+## [1] "x" "y"
 ```
 
 ## 3.6.1 Creating
 
-```{r}
+
+```r
 df <- data.frame(
   x = 1:3, 
   y = c("a", "b", "c")
@@ -580,7 +1115,14 @@ df <- data.frame(
 str(df)
 ```
 
-```{r}
+```
+## 'data.frame':	3 obs. of  2 variables:
+##  $ x: int  1 2 3
+##  $ y: chr  "a" "b" "c"
+```
+
+
+```r
 # stringAsFactors is FALSE by default from the documentation
 
 df1 <- data.frame(
@@ -591,7 +1133,14 @@ df1 <- data.frame(
 str(df1)
 ```
 
-```{r}
+```
+## 'data.frame':	3 obs. of  2 variables:
+##  $ x: int  1 2 3
+##  $ y: chr  "a" "b" "c"
+```
+
+
+```r
 # tibbles do not coerce their input
 df2 <- tibble(
   x = 1:3, 
@@ -600,16 +1149,34 @@ df2 <- tibble(
 str(df2)
 ```
 
-```{r}
+```
+## tibble [3 × 2] (S3: tbl_df/tbl/data.frame)
+##  $ x: int [1:3] 1 2 3
+##  $ y: chr [1:3] "a" "b" "c"
+```
+
+
+```r
 # tibbles do not automatically transform non-syntactic names
 names(data.frame(`1` = 1))
+```
 
+```
+## [1] "X1"
+```
+
+```r
 names(tibble(`1` = 1))
+```
+
+```
+## [1] "1"
 ```
 
 * `data.frame()` and `tibble()` recycle inputs
 
-```{r, eval = FALSE}
+
+```r
 data.frame(x = 1:4, y = 1:2)
 data.frame(x = 1:4, y = 1:3) # must be multiples of each other to be recycled
 
@@ -618,7 +1185,8 @@ tibble(x = 1:4, y = 1:2)
 ```
 
 
-```{r}
+
+```r
 # can refer to variables during tibble construction
 tibble(
   x = 1:3,
@@ -626,9 +1194,19 @@ tibble(
 )
 ```
 
+```
+## # A tibble: 3 × 2
+##       x     y
+##   <int> <dbl>
+## 1     1     2
+## 2     2     4
+## 3     3     6
+```
+
 ## 3.6.2 Row names
 
-```{r}
+
+```r
 df3 <- data.frame(
   age = c(35, 27, 18),
   hair = c("blond", "brown", "black"),
@@ -637,10 +1215,29 @@ df3 <- data.frame(
 df3
 ```
 
-```{r}
-rownames(df3)
+```
+##       age  hair
+## Bob    35 blond
+## Susan  27 brown
+## Sam    18 black
+```
 
+
+```r
+rownames(df3)
+```
+
+```
+## [1] "Bob"   "Susan" "Sam"
+```
+
+```r
 df3["Bob", ]
+```
+
+```
+##     age  hair
+## Bob  35 blond
 ```
 
 * transposing data frames is not allowed
@@ -656,8 +1253,18 @@ df3["Bob", ]
 * can convert row names to columns using `rownames_to_column()` or `rownames` in
 `as.tibble()`
 
-```{r}
+
+```r
 as_tibble(df3, rownames = "name")
+```
+
+```
+## # A tibble: 3 × 3
+##   name    age hair 
+##   <chr> <dbl> <chr>
+## 1 Bob      35 blond
+## 2 Susan    27 brown
+## 3 Sam      18 black
 ```
 
 ## 3.6.4 Subsetting
@@ -682,7 +1289,8 @@ starts with `x`
 * data frames can have a column that is a list to keep related objects together
 in a row
 
-```{r}
+
+```r
 # list columns in dataframes
 df <- data.frame(x = 1:3)
 df$y <- list(1:2, 1:3, 1:4)
@@ -693,7 +1301,15 @@ data.frame(
 )
 ```
 
-```{r}
+```
+##   x          y
+## 1 1       1, 2
+## 2 2    1, 2, 3
+## 3 3 1, 2, 3, 4
+```
+
+
+```r
 # list columns in tibbles
 tibble(
   x = 1:3, 
@@ -701,12 +1317,22 @@ tibble(
 )
 ```
 
+```
+## # A tibble: 3 × 2
+##       x y        
+##   <int> <list>   
+## 1     1 <int [2]>
+## 2     2 <int [3]>
+## 3     3 <int [4]>
+```
+
 ## 3.6.7 Matrix and data frame columns
 
 * possible to have a matrix or array as a column in a dataframe if the 
 number of rows matches the data frame
 
-```{r}
+
+```r
 dfm <- data.frame(
   x = 1:3 * 10
 )
@@ -716,27 +1342,54 @@ dfm$z <- data.frame(a = 3:1, b = letters[1:3], stringsAsFactors = FALSE)
 str(dfm)
 ```
 
-```{r}
+```
+## 'data.frame':	3 obs. of  3 variables:
+##  $ x: num  10 20 30
+##  $ y: int [1:3, 1:3] 1 2 3 4 5 6 7 8 9
+##  $ z:'data.frame':	3 obs. of  2 variables:
+##   ..$ a: int  3 2 1
+##   ..$ b: chr  "a" "b" "c"
+```
+
+
+```r
 dfm[1, ] # no output?
+```
+
+```
+##    x y.1 y.2 y.3 z.a z.b
+## 1 10   1   4   7   3   a
 ```
 
 ## 3.6.8 Exercises
 
 1. Can you have a data frame with zero rows? What about zero columns?
 
-```{r}
+
+```r
 # zero rows
 a <- data.frame(x = character())
 dim(a)
+```
 
+```
+## [1] 0 1
+```
+
+```r
 # zero columns
 b <- data.frame(row.names = 1)
 dim(b)
 ```
 
+```
+## [1] 1 0
+```
+
 2. What happens if you attempt to set rownames that are not unique?
 
-```{r, eval = FALSE}
+
+```r
 c <- data.frame(row.names = rep(1, 5))
 names(c)
 # cannot set non-unique rownames for dataframes, got an error
@@ -745,27 +1398,67 @@ names(c)
 3. If `df` is a data frame, what can you say about `t(df)` and `t(t(df))`? Perform
 some experiments, making sure to try different column types.
 
-```{r}
+
+```r
 df <- data.frame(a = 1:3, b = c("one", "two", "three"), c = c(T, F, F))
 t(df)
+```
+
+```
+##   [,1]   [,2]    [,3]   
+## a "1"    "2"     "3"    
+## b "one"  "two"   "three"
+## c "TRUE" "FALSE" "FALSE"
+```
+
+```r
 t(t(df))
+```
+
+```
+##      a   b       c      
+## [1,] "1" "one"   "TRUE" 
+## [2,] "2" "two"   "FALSE"
+## [3,] "3" "three" "FALSE"
+```
+
+```r
 # matrix outputs, every element is cast to highest priority type (in this case character)
 ```
 
 4. What does `as.matrix()` do when applied to a data frame with columns of different types?
 How does it differ from `data.matrix()`?
 
-```{r}
+
+```r
 df <- data.frame(a = 1:3, b = c("one", "two", "three"), c = c(T, F, F), d = c(1.1, 1.2, 1.3))
 as.matrix(df) # same findings from 3
+```
+
+```
+##      a   b       c       d    
+## [1,] "1" "one"   "TRUE"  "1.1"
+## [2,] "2" "two"   "FALSE" "1.2"
+## [3,] "3" "three" "FALSE" "1.3"
+```
+
+```r
 data.matrix(df) # logical cast to integers, weird things going on with strings
+```
+
+```
+##      a b c   d
+## [1,] 1 1 1 1.1
+## [2,] 2 3 0 1.2
+## [3,] 3 2 0 1.3
 ```
 
 # 3.7 `NULL`
 
 * `NULL` has its own unique type, length zero, and does not have attributes
 
-```{r, eval = FALSE}
+
+```r
 typeof(NULL)
 
 length(NULL)
