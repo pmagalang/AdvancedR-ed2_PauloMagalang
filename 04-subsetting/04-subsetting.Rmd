@@ -1,0 +1,238 @@
+---
+title: 'Chapter 4: Subsetting'
+author: "Paulo Magalang"
+date: "2022-09-13"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+# Quiz
+
+1. What is the result of subsetting a vector with positive integers, negative
+integers, a logical vector, or a character vector?
+
+2. What is the difference between `[`, `[[`, and `$` when applied to a list?
+
+3. When should you use `drop = FALSE`?
+
+4. If `x` is a matrix, what does `x[] <- 0` do? How is it different from `x <- 0`?
+
+5. How can you use a named vector to relabel categorical variables?
+
+# 4.2 Selecting multiple elements
+
+* 6 ways to subset a vector:
+
+  - positive integers return elements at a given index; can give dupes for indices
+  and the floor of doubles are taken when input as an index
+  
+  - exclude elements with negative integers, but can't mix and match positive and 
+  negative integers in one call
+  
+  - elements returned when corresponding logical value is `TRUE`, be careful of recycling
+  
+  - not including an index returns the original vector
+  
+  - zero returns a zero-length vector
+  
+  - can use character vectors to subset a named vector
+  
+## 4.2.2 Lists
+
+* `[` gives a list output
+
+* `[[` and `$` will pull an element of a list by index or name
+
+## 4.2.3 Matrices and arrays
+
+* can subset high-dimensional structures with: multiple vectors, one vector, a matrix
+
+* subsetting with `[` drops the results to the lowest possible dimension
+
+```{r}
+a <- matrix(1:9, nrow = 3)
+colnames(a) <- c("A", "B", "C")
+
+a[1, ] # 1d output
+```
+
+```{r}
+# subsetting with one vector
+vals <- outer(1:5, 1:5, FUN = "paste", sep = ",")
+vals
+
+vals[c(4, 15)] # arrays are stored in column-major order (unlike python/java)
+```
+
+```{r}
+# subsetting with another matrix
+# each row specifies a "coordinate" in the larger matrix
+
+select <- matrix(ncol = 2, byrow = TRUE, c(
+  1, 1, # row 1 col 1
+  3, 1, # row 3 col 1
+  2, 4 # row 2 col 4
+))
+vals[select]
+```
+
+## 4.2.4 Data frames and tibbles
+
+* data frames act both like lists and matrices
+
+  - list behavior with one index and selects by column
+  
+  - matrix behavior with two indices and selects by row and column
+
+```{r}
+df <- data.frame(x = 1:3, y = 3:1, z = letters[1:3])
+
+# There's an important difference if you select a single 
+# column: matrix subsetting simplifies by default, list 
+# subsetting does not.
+str(df["x"]) # still a list
+str(df[, "x"]) # simplified to 1d vector
+```
+
+* subsetting a tibble with `[` will return a tibble
+
+## 4.2.5 Preserving dimensionality
+
+* subsetting a matrix or data frame with a single value will simplify the output,
+can preserve dimensionality with `drop = FALSE`
+
+```{r}
+a <- matrix(1:4, nrow = 2)
+str(a[1, ])
+
+str(a[1, , drop = FALSE])
+```
+
+```{r}
+df <- data.frame(a = 1:2, b = 1:2)
+str(df[, "a"])
+
+str(df[, "a", drop = FALSE])
+```
+
+* `drop = TRUE` is the source of many bugs, get in the habit of using `drop = FALSE` when
+subsetting 2D objects
+
+* `drop = FALSE` is default with tibbles
+
+* `drop` with factors controls if levels are preserved, `FALSE` by default
+
+## 4.2.6 Exercises
+
+1. Fix each of the following common data frame subsetting errors:
+
+```{r}
+#mtcars[mtcars$cyl = 4, ]
+mtcars[mtcars$cyl == 4, ]
+
+#mtcars[-1:4, ]
+mtcars[-c(1:4), ]
+
+#mtcars[mtcars$cyl <= 5]
+mtcars[mtcars$cyl <= 5, ]
+
+#mtcars[mtcars$cyl == 4 | 6, ]
+mtcars[mtcars$cyl == 4 | mtcars$cyl == 6, ]
+```
+
+2. What does the following code yield five missing values? (Hint: why is it different from
+`x[NA_real_]`?)
+
+```{r}
+x <- 1:5
+x[NA]
+
+x[NA_real_]
+
+# NA is a logical by default and is recycled when subsetting using x[NA]
+# NA_real_ is a double and doubles are truncated when used to subset a vector which is
+# why there is only one output
+
+typeof(NA)
+typeof(NA_real_)
+```
+
+3. What does `upper.tri()` return? How does subsetting a matrix with it work? Do we
+need any additional subsetting rules to describe its behavior?
+
+```{r}
+x <- outer(1:5, 1:5, FUN = "*")
+x[upper.tri(x)]
+```
+
+`upper.tri()` returns a logical matrix with the elements in the upper triangular of the matrix 
+true (excluding the main diagonal). Subsetting a matrix with a logical matrix will pull all of
+the indices from the matrix that are `TRUE` in the corresponding logical matrix. Subsetting
+this way will return a vector instead of a matrix, however.
+
+4. Why does `mtcars[1:20]` return an error? How does it differ form the similar `mtcars[1:20, ]`?
+
+```{r}
+dim(mtcars)
+```
+
+`mtcars[1:20]` will return the first 20 columns of `mtcars`. However, looking at the dimensions of
+`mtcars` there are only 11 columns present. `mtcars[1:20, ]` will return the first 20 rows of the
+data frame.
+
+5. Implement your own function that extracts the diagonal entries from a matrix (it should
+behave like `diag(x)` where `x` is a matrix).
+
+```{r}
+get_diag <- function(x) {
+    # can't assume x is a square matrix, take smallest dimension of x if rectangular matrix
+    # generate vector of indices for selection matrix
+    indices <- rep(1:min(dim(x)), each = length(dim(x)))
+    
+    # subset matrix by matrix
+    select <- matrix(ncol = length(dim(x)), byrow = TRUE, indices)
+    x[select]
+}
+
+ex <- outer(1:5, 1:5, FUN = "*")
+get_diag(ex)
+```
+
+6. What does `df[is.na(df)] <- 0` do? How does it work?
+
+It replaces `NA` values in `df` with 0. `is.na(df)` outputs a logical
+matrix where it is `TRUE` if there is an `NA` present in a given position
+of the data frame. That logical matrix is used to subset the dataframe.
+
+# 4.3 Selecting a single element
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
