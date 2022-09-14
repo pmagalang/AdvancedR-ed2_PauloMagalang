@@ -207,13 +207,82 @@ of the data frame. That logical matrix is used to subset the dataframe.
 
 # 4.3 Selecting a single element
 
+## 4.3.1 `[[` for single items
 
+* subsetting a list with `[` will return a list, `[[` will return the element itself
 
+* using a vector with `[[` will subset recursively, use `purr::pluck()` instead to pull
+multiple elements from a list
 
+* use `[[` with atomic vectors as well to reinforce single values are being extracted/changed
 
+## 4.3.2 `$`
 
+* `$` shorthand; example: `x$y` roughly equivalent to `x[["y"]]`
 
+* use `[[` if trying to access a column but the colname is stored as a variable
 
+```{r}
+var <- "cyl"
+# Doesn't work - mtcars$var translated to mtcars[["var"]]
+mtcars$var
+
+# Instead use [[
+mtcars[[var]]
+```
+
+* `$` does partial matching, set `warnPartialMatchDollar = TRUE` under global options
+to avoid this behavior
+
+## 4.4.4 Missing and out-of-bounds indices
+
+* `purrr::pluck()` always returns `NULL` and `purrr::chuck()` will throw an error
+
+```{r}
+x <- list(
+  a = list(1, 2, 3),
+  b = list(3, 4, 5)
+)
+
+purrr::pluck(x, "a", 1)
+
+purrr::pluck(x, "c", 1)
+
+purrr::pluck(x, "c", 1, .default = NA)
+```
+
+## 4.3.4 `@` and `slot()`
+
+* `@` is equivalent to `$` and `slot()` is equivalent to `[[` for S4 objects
+
+## 4.3.5 Exercises
+
+1. Brainstorm as many ways as possible to extract the thrid value from the `cyl` varialbe
+in the `mtcars` dataset.
+
+```{r}
+mtcars[3, 2]
+mtcars$cyl[[3]]
+mtcars[, 2][[3]]
+mtcars[, "cyl"][[3]]
+mtcars[3, ]$cyl
+mtcars[3, "cyl"]
+```
+
+2. Given a linear model, e.g., `mod <- lm(mpg ~ wt, data = mtcars)`, extract the
+residual degrees of freedom. Then extract the R squared from the model summary (`summary(mod)`)
+
+```{r}
+mod <- lm(mpg ~ wt, data = mtcars)
+
+#str(mod)
+mod$df.residual
+
+#str(summary(mod))
+summary(mod)$r.squared
+```
+
+# 4.4 Subsetting and assignment
 
 
 
