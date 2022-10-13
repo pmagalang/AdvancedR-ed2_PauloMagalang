@@ -13,6 +13,8 @@ output:
 
 1. What are the three componenets of a function?
 
+* body, argument, environment
+
 2. What does the following code return?
 
 
@@ -23,7 +25,7 @@ f1 <- function(x) {
     x + 10
   }
 }
-f1(1)()
+f1(1)() # output is 11, x is masked and is equal to 1
 ```
 
 ```
@@ -35,6 +37,14 @@ f1(1)()
 
 ```r
 `+`(1, `*`(2, 3))
+```
+
+```
+## [1] 7
+```
+
+```r
+2 * 3 + 1
 ```
 
 ```
@@ -53,7 +63,13 @@ mean(, TRUE, x = c(1:10, NA))
 ## [1] 5.5
 ```
 
+```r
+# mean(x = c(1:10, NA), na.rm = TRUE)
+```
+
 5. Does the following code throw an error when executed? Why or why not?
+
+No because b is never utilized in f2.
 
 
 ```r
@@ -70,7 +86,13 @@ f2(10, stop("This is an error!"))
 6. What is an infix function? How do you write it? What's a replacement function?
 How do you write it?
 
+* infix function: function is called between arguments
+
+* replacement function: function that replace values by assignment
+
 7. How do you ensure that cleanup action occurs regardless of how a function exits?
+
+* use `on.exit()`
 
 # 6.2 Function fundamentals
 
@@ -315,7 +337,7 @@ match.fun(mean)
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x0000029e3d41ae08>
+## <bytecode: 0x0000016c98006d68>
 ## <environment: namespace:base>
 ```
 
@@ -327,7 +349,7 @@ match.fun(x)
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x0000029e3d41ae08>
+## <bytecode: 0x0000016c98006d68>
 ## <environment: namespace:base>
 ```
 
@@ -416,7 +438,7 @@ a. Which base function has the most arguments?
 
 ```r
 params <- lapply(funs, formals)
-param_values <- unlist(lapply(params, length))
+param_values <- unlist(lapply(params, length)) # sapply will return vector instead of list
 which(param_values == max(param_values))
 ```
 
@@ -1022,6 +1044,8 @@ x_ok(1:3)
 
 `&` is the vectorized version of `&&` so a vector will always be output with `&`.
 
+`&` will run all boolean comparisons.
+
 
 ```r
 # testing
@@ -1172,7 +1196,7 @@ show_time()
 ```
 
 ```
-## [1] "2022-10-09 15:54:35 PDT"
+## [1] "2022-10-13 16:42:04 PDT"
 ```
 
 6. How many arguments are required when calling `library()`?
@@ -1189,6 +1213,997 @@ args(library)
 ##     attach.required = missing(include.only)) 
 ## NULL
 ```
+
+# 6.6 `...` (dot-dot-dot)
+
+* `...` allows functions to take any number of additional arguments, varargs in other
+languages; also can use it to pass arguments to other functions
+
+
+```r
+i01 <- function(y, z) {
+  list(y = y, z = z)
+}
+
+i02 <- function(x, ...) {
+  i01(...)
+}
+
+str(i02(x = 1, y = 2, z = 3))
+```
+
+```
+## List of 2
+##  $ y: num 2
+##  $ z: num 3
+```
+
+* can use `..N` to refer to elements of `...` by index
+
+*`list(...)` evaluates arguments and stores them as a list
+
+
+```r
+i04 <- function(...) {
+  list(...)
+}
+str(i04(a = 1, b = 2))
+```
+
+```
+## List of 2
+##  $ a: num 1
+##  $ b: num 2
+```
+
+* uses of `...`:
+
+  - pass additional arguments to a function if the function is an argument
+  
+
+```r
+x <- list(c(1, 3, NA), c(4, NA, 6))
+str(lapply(x, mean, na.rm = TRUE)) # na.rm is an argument for mean()
+```
+
+```
+## List of 2
+##  $ : num 2
+##  $ : num 5
+```
+  
+  - certain functions can take an arbitrary amount of arguments (ie: print)
+  
+
+```r
+print(factor(letters), max.levels = 4)
+```
+
+```
+##  [1] a b c d e f g h i j k l m n o p q r s t u v w x y z
+## 26 Levels: a b c ... z
+```
+
+```r
+print(y ~ x, showEnv = TRUE)
+```
+
+```
+## y ~ x
+## <environment: R_GlobalEnv>
+```
+  
+* downsides of `...`:
+
+  - must be explicit in where additional arguments are utilized
+  
+  - misspelled arguments will not raise errors
+  
+## 6.6.1 Exercises
+
+1. Explain the following results:
+
+
+```r
+# sum(..., na.rm = FALSE)
+# mean(x, trim = 0, na.rm = FALSE, ...)
+
+sum(1, 2, 3) # expected behavior
+```
+
+```
+## [1] 6
+```
+
+```r
+mean(1, 2, 3) # x = 1, mean of 1 is 1, trim set to 2, third argument is not used at all
+```
+
+```
+## [1] 1
+```
+
+```r
+sum(1, 2, 3, na.omit = TRUE) # argument name is na.rm not na.omit, TRUE is cast to 1
+```
+
+```
+## [1] 7
+```
+
+```r
+sum(1, 2, 3, na.omit = FALSE)
+```
+
+```
+## [1] 6
+```
+
+```r
+mean(1, 2, 3, na.omit = TRUE) # same typo on argument name, na.omit is passed in ...
+```
+
+```
+## [1] 1
+```
+
+
+```r
+# mean testing
+
+# second argument is a numeric, value is set to trim
+mean(iris$Sepal.Length)
+```
+
+```
+## [1] 5.843333
+```
+
+```r
+mean(iris$Sepal.Length, trim = 0.3)
+```
+
+```
+## [1] 5.815
+```
+
+```r
+mean(iris$Sepal.Length, 0.3)
+```
+
+```
+## [1] 5.815
+```
+
+```r
+# output is the same with third argument, argument is passed in ...
+mean(iris$Sepal.Length, 0.3, 3)
+```
+
+```
+## [1] 5.815
+```
+
+2. Explain how to find the documentation for the named arguments in the following function
+call:
+
+Named arguments in `plot` can be found in the documentation for `par()`.
+
+
+```r
+plot(1:10, col = "red", pch = 20, xlab = "x", col.lab = "blue")
+```
+
+3. Why does `plot(1:10, col = "red")` only color the points, not the axes or labels?
+Read the source code of `plot.default()` to find out.
+
+To change the color of axes or labels, you have to use the `col.axis` and `col.lab`
+arguments (found in the `par()` documentation).
+
+# 6.7 Exiting a function
+
+* functions exit by returning a value or throwing an error
+
+## 6.7.1 Implicit versus explicit returns
+
+* two ways a function can return a value:
+
+  - implicitly: last evaluated expression is the return value
+  
+
+```r
+j01 <- function(x) {
+  if (x < 10) {
+    0
+  } else {
+    10
+  }
+}
+j01(5)
+```
+
+```
+## [1] 0
+```
+
+```r
+j01(15)
+```
+
+```
+## [1] 10
+```
+   - explicitly: call `return()`
+   
+
+```r
+j02 <- function(x) {
+  if (x < 10) {
+    return(0)
+  } else {
+    return(10)
+  }
+}
+```
+   
+
+## 6.7.2 Invisible values
+
+* can prevent automatic printing when invoking a function with `invisible()`
+
+
+```r
+j04 <- function() invisible(1)
+j04()
+```
+
+
+```r
+# check that the function output actually exists
+
+print(j04())
+```
+
+```
+## [1] 1
+```
+
+```r
+(j04())
+```
+
+```
+## [1] 1
+```
+
+
+```r
+# withVisible() returns the value and visibility flag
+str(withVisible(j04()))
+```
+
+```
+## List of 2
+##  $ value  : num 1
+##  $ visible: logi FALSE
+```
+
+* `<-` returns invisibly
+
+* please don't chain variable assignments
+
+## 6.7.3 Errors
+
+* `stop()` throws errors, will terminate function execution
+
+
+```r
+j05 <- function() {
+  stop("I'm an error")
+  return(10)
+}
+j05()
+```
+
+## 6.7.4 Exit handlers
+
+* `on.exit()` to set up an exit handler: changes to the global environment from a
+function are reset
+
+
+```r
+j06 <- function(x) {
+  cat("Hello\n")
+  on.exit(cat("Goodbye!\n"), add = TRUE) 
+  # add = TRUE necessary to retain previous exit handlers
+  
+  if (x) {
+    return(10)
+  } else {
+    stop("Error")
+  }
+}
+
+j06(TRUE)
+j06(FALSE)
+```
+
+
+```r
+cleanup <- function(dir, code) {
+  old_dir <- setwd(dir)
+  on.exit(setwd(old_dir), add = TRUE)
+  
+  old_opt <- options(stringsAsFactors = FALSE)
+  on.exit(options(old_opt), add = TRUE)
+}
+```
+
+
+```r
+with_dir <- function(dir, code) {
+  old <- setwd(dir)
+  on.exit(setwd(old), add = TRUE)
+
+  force(code)
+}
+
+getwd()
+```
+
+```
+## [1] "C:/Users/paulo/Documents/Maloof/rclub/AdvancedR-ed2_PauloMagalang/06-functions"
+```
+
+```r
+with_dir("~", getwd())
+```
+
+```
+## [1] "C:/Users/paulo/Documents"
+```
+
+
+```r
+j08 <- function() {
+  on.exit(message("a"), add = TRUE)
+  on.exit(message("b"), add = TRUE)
+}
+j08()
+```
+
+```
+## a
+```
+
+```
+## b
+```
+
+
+```r
+j09 <- function() {
+  on.exit(message("a"), add = TRUE, after = FALSE)
+  on.exit(message("b"), add = TRUE, after = FALSE)
+}
+j09()
+```
+
+```
+## b
+```
+
+```
+## a
+```
+
+## 6.7.5 Exercises
+
+1. What does `load()` return? Why don't you normally see these values?
+
+`load()` loads in objects saved in `.RData` files. From the source code, it returns
+another `load()` call wrapped in `.Internal()`. Not exactly sure how the recursive
+call is broken but it probably has something to do with `.Internal()`. Values are
+not printed since `verbose = FALSE` is default.
+
+2. What does `write.table()` return? What would be more useful?
+
+`write.table()` returns `NULL`. It would be more useful to print out some sort of
+confirmation that the data frame was successfully written.
+
+
+```r
+df <- data.frame(x = 1, y = 2)
+(write.table(df))
+```
+
+```
+## "x" "y"
+## "1" 1 2
+```
+
+```
+## NULL
+```
+
+3. How does the `chdir` parameter of `source()` compare to `with_dir()`? Why might
+you prefer one to the other?
+
+`chdir` is a Boolean that is set to `FALSE` by default. When `chdir` is `TRUE`, the
+working directory is changed to the filepath given by the `file` argument. `with_dir()`
+does the same thing, but the filepath is explicitly defined by the user instead of
+being taken by another function argument. If the code needs to be executed in a different
+directory than the R script is in, than `with_dir()` is preferred since it is flexible.
+
+4. Write a function that opens a graphics device, runs the supplied code, and closes
+the graphics device (always, regardless of whether or not the plotting code works). 
+
+
+```r
+q4_fxn <- function() {
+    windows()
+    on.exit(dev.off(), add = TRUE)
+}
+#q4_fxn()
+```
+
+5. We can use `on.exit()` to implement a simple version of `capture.output()`.
+
+
+```r
+capture.output2 <- function(code) {
+  temp <- tempfile() # generate path to tempfile
+  on.exit(unlink(temp), add = TRUE, after = TRUE) # delete tempfile
+
+  sink(temp) # generate the tempfile, redirect console outputs to tempfile
+  on.exit(sink(), add = TRUE, after = TRUE) # outputs redirected back to console
+
+  force(code)
+  readLines(temp)
+}
+capture.output2(cat("a", "b", "c", sep = "\n"))
+```
+
+```
+## [1] "a" "b" "c"
+```
+
+Compare `capture.output()` to `capture.output2()`. How do the functions differ?
+What features have I removed to make the key ideas easier to see? How have I rewritten
+the key ideas so they're easier to understand?
+
+
+```r
+capture.output
+```
+
+```
+## function (..., file = NULL, append = FALSE, type = c("output", 
+##     "message"), split = FALSE) 
+## {
+##     type <- match.arg(type)
+##     rval <- NULL
+##     closeit <- TRUE
+##     if (is.null(file)) 
+##         file <- textConnection("rval", "w", local = TRUE)
+##     else if (is.character(file)) 
+##         file <- file(file, if (append) 
+##             "a"
+##         else "w")
+##     else if (inherits(file, "connection")) {
+##         if (!isOpen(file)) 
+##             open(file, if (append) 
+##                 "a"
+##             else "w")
+##         else closeit <- FALSE
+##     }
+##     else stop("'file' must be NULL, a character string or a connection")
+##     sink(file, type = type, split = split)
+##     on.exit({
+##         sink(type = type, split = split)
+##         if (closeit) close(file)
+##     })
+##     for (i in seq_len(...length())) {
+##         out <- withVisible(...elt(i))
+##         if (out$visible) 
+##             print(out$value)
+##     }
+##     on.exit()
+##     sink(type = type, split = split)
+##     if (closeit) 
+##         close(file)
+##     if (is.null(rval)) 
+##         invisible(NULL)
+##     else rval
+## }
+## <bytecode: 0x0000016c98153370>
+## <environment: namespace:utils>
+```
+
+# 6.8 Function forms
+
+* 4 types of function calls:
+
+  - prefix: function name comes before arguments
+  
+  - infix: function name comes between arguments
+  
+  - replacement: functions that replace values by assignment
+  
+  - special: examples - `[[`, `if`, `for`
+  
+## 6.8.1 Rewriting to prefix form
+
+
+```r
+x + y
+`+`(x, y)
+
+names(df) <- c("x", "y", "z")
+`names<-`(df, c("x", "y", "z"))
+
+for(i in 1:10) print(i)
+`for`(i, 1:10, print(i))
+```
+
+
+```r
+# equivalent outputs
+
+add <- function(x, y) x + y # custom function
+lapply(list(1:3, 4:5), add, 3)
+```
+
+```
+## [[1]]
+## [1] 4 5 6
+## 
+## [[2]]
+## [1] 7 8
+```
+
+```r
+lapply(list(1:3, 4:5), `+`, 3) # using existing `+`
+```
+
+```
+## [[1]]
+## [1] 4 5 6
+## 
+## [[2]]
+## [1] 7 8
+```
+
+## 6.8.2 Prefix form
+
+* specify arguments in prefix form in 3 ways:
+
+  - by position
+  
+  - using partial matching, can output waring with `warnPartialMatchArgs` option
+  
+  - by name
+  
+
+```r
+k01 <- function(abcdef, bcde1, bcde2) {
+  list(a = abcdef, b1 = bcde1, b2 = bcde2)
+}
+
+# by position
+str(k01(1, 2, 3))
+```
+
+```
+## List of 3
+##  $ a : num 1
+##  $ b1: num 2
+##  $ b2: num 3
+```
+
+```r
+# by name: match has priority
+str(k01(2, 3, abcdef = 1))
+```
+
+```
+## List of 3
+##  $ a : num 1
+##  $ b1: num 2
+##  $ b2: num 3
+```
+
+```r
+# partial matching: match has priority
+str(k01(2, 3, a = 1))
+```
+
+```
+## List of 3
+##  $ a : num 1
+##  $ b1: num 2
+##  $ b2: num 3
+```
+
+```r
+# But this doesn't work because abbreviation is ambiguous
+#str(k01(1, 3, b = 1))
+```
+
+## 6.8.3 Infix functions
+
+* can create custom infix functions that start and end with `%`, can escape special
+characters with `\` when defining the function
+
+
+```r
+`%+%` <- function(a, b) paste0(a, b)
+"new " %+% "string"
+```
+
+```
+## [1] "new string"
+```
+
+
+```r
+`% %` <- function(a, b) paste(a, b)
+`%/\\%` <- function(a, b) paste(a, b)
+
+"a" % % "b"
+```
+
+```
+## [1] "a b"
+```
+
+```r
+"a" %/\% "b"
+```
+
+```
+## [1] "a b"
+```
+
+* infix operators are always composed left to right
+
+* `+` and `-` can be called with a single argument
+
+## 6.8.4 Replacement functions
+
+* functions that modify arguments in place, have name `xxx<-`, have
+arguments `x` and `value`, and return modified object
+
+
+```r
+`second<-` <- function(x, value) {
+  x[2] <- value
+  x
+}
+
+x <- 1:10
+second(x) <- 5L # second element modified
+x
+```
+
+```
+##  [1]  1  5  3  4  5  6  7  8  9 10
+```
+
+* copy on modify behavior
+
+
+```r
+library(lobstr)
+
+x <- 1:10
+tracemem(x)
+```
+
+```
+## [1] "<0000016C9C32D0A8>"
+```
+
+```r
+second(x) <- 6L
+```
+
+```
+## tracemem[0x0000016c9c32d0a8 -> 0x0000016c9bf98e18]: eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call <Anonymous> evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file <Anonymous> <Anonymous> 
+## tracemem[0x0000016c9bf98e18 -> 0x0000016c9c255528]: second<- eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call <Anonymous> evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file <Anonymous> <Anonymous>
+```
+
+```r
+untracemem(x)
+```
+
+* if additional arguments are needed for a replacement function, put them between
+`x` and `value`
+
+
+```r
+`modify<-` <- function(x, position, value) {
+  x[position] <- value
+  x
+}
+
+modify(x, 1) <- 10
+x
+```
+
+```
+##  [1] 10  6  3  4  5  6  7  8  9 10
+```
+
+```r
+# behind the scenes, call is converted to
+x <- `modify<-`(x, 1, 10)
+```
+
+## 6.8.5 Special forms
+
+* examples: parentheses, subsetting, control flow, `function` functions
+
+* implemented in C
+
+## 6.8.6 Exercises
+
+1. Rewrite the following code snippets into prefix form:
+
+
+```r
+1 + 2 + 3
+```
+
+```
+## [1] 6
+```
+
+```r
+`+`(`+`(1, 2), 3)
+```
+
+```
+## [1] 6
+```
+
+```r
+1 + (2 + 3)
+```
+
+```
+## [1] 6
+```
+
+```r
+`+`(1, `+`(2, 3))
+```
+
+```
+## [1] 6
+```
+
+```r
+x <- 1:10
+n <- 1
+if (length(x) <= 5) x[[5]] else x[[n]]
+```
+
+```
+## [1] 1
+```
+
+```r
+`if`(length(x) <= 5, `[[`(x, 5), `[[`(x, n))
+```
+
+```
+## [1] 1
+```
+
+2. Clarify the following list of odd function calls:
+
+
+```r
+#x <- sample(replace = TRUE, 20, x = c(1:10, NA))
+x <- sample(x = c(1:10, NA), size = 20, replace = TRUE)
+
+#y <- runif(min = 0, max = 1, 20)
+y <- runif(n = 20, min = 0, max = 1)
+
+#cor(m = "k", y = y, u = "p", x = x)
+cor(x = x, y = y, use = "pairwise.complete.obs", method = "kendall")
+```
+
+```
+## [1] -0.397236
+```
+
+3. Explain why the following code fails:
+
+
+```r
+`modify<-` <- function(x, position, value) {
+  x[position] <- value
+  x
+}
+
+modify(get("x"), 1) <- 10
+
+# call is converted to:
+get("x") <- `modify<-`(get("x"), 1, 10)
+
+# I don't think get() is meant to be a replacement function
+```
+
+4. Create a replacement function that modifies a random location in a vector.
+
+
+```r
+`random_replace<-` <- function(x, value) {
+    index <- sample(x, size = length(x))[1]
+    x[index] <- value
+    x
+}
+
+x <- 1:10
+random_replace(x) <- 999
+x
+```
+
+```
+##  [1]   1   2   3 999   5   6   7   8   9  10
+```
+
+5. Write your own version of `+` that pastes its inputs together if they are character
+vectors but behaves as usual otherwise.
+
+
+```r
+`+` <- function(a, b) {
+    if (is.character(a) | is.character(b)) {
+        return(paste0(a, b))
+    }
+    else {
+        return(sum(a, b))
+    }
+}
+
+1 + 2
+```
+
+```
+## [1] 3
+```
+
+```r
+"a" + "b"
+```
+
+```
+## [1] "ab"
+```
+
+6. Create a list of all the replacement functions found in the base package. Which
+ones are primitive functions? (Hint: use `apropos()`.)
+
+
+```r
+replacement_functions <- apropos("<-$", mode = "function")
+is_replacement_function <- sapply(replacement_functions, is.primitive)
+
+replacement_functions[is_replacement_function]
+```
+
+```
+## character(0)
+```
+
+7. What are valid names for user-created infix functions?
+
+Valid names for user-created infix functions are names that start and end with `%`.
+
+8. Create an infix `xor()` operator.
+
+XOR is defined as: (P OR Q) AND NOT (P AND Q) (from wikipedia)
+
+
+```r
+`%xor%` <- function(a, b) {
+    (a | b) & !(a & b)
+}
+
+# test
+FALSE %xor% FALSE
+```
+
+```
+## [1] FALSE
+```
+
+```r
+FALSE %xor% TRUE
+```
+
+```
+## [1] TRUE
+```
+
+```r
+TRUE %xor% FALSE
+```
+
+```
+## [1] TRUE
+```
+
+```r
+TRUE %xor% TRUE
+```
+
+```
+## [1] FALSE
+```
+
+9. Create infix versions of the set functions `intersect()`, `union()`, and
+`setdiff()`. You might call them `%n%`, `%u%`, and `%/%` to match conventions
+from mathematics.
+
+
+```r
+`%n%` <- function(a, b) {
+    intersect(a, b)
+}
+
+`%u%` <- function(a, b) {
+    union(a, b)
+}
+
+`%/%` <- function(a, b) {
+    setdiff(a, b)
+}
+
+a <- c(1, 2, 4, 5)
+b <- c(2, 3, 4)
+
+a %n% b
+```
+
+```
+## [1] 2 4
+```
+
+```r
+a %u% b
+```
+
+```
+## [1] 1 2 4 5 3
+```
+
+```r
+a %/% b
+```
+
+```
+## [1] 1 5
+```
+
+```r
+b %/% a
+```
+
+```
+## [1] 3
+```
+
+
+
+
+
+
+
+
 
 
 

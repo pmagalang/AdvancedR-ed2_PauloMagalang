@@ -375,8 +375,13 @@ pre code {
 <div id="quiz" class="section level2">
 <h2>Quiz</h2>
 <ol style="list-style-type: decimal">
-<li><p>What are the three componenets of a function?</p></li>
-<li><p>What does the following code return?</p></li>
+<li>What are the three componenets of a function?</li>
+</ol>
+<ul>
+<li>body, argument, environment</li>
+</ul>
+<ol start="2" style="list-style-type: decimal">
+<li>What does the following code return?</li>
 </ol>
 <pre class="r"><code>x &lt;- 10
 f1 &lt;- function(x) {
@@ -384,33 +389,47 @@ f1 &lt;- function(x) {
     x + 10
   }
 }
-f1(1)()</code></pre>
+f1(1)() # output is 11, x is masked and is equal to 1</code></pre>
 <pre><code>## [1] 11</code></pre>
 <ol start="3" style="list-style-type: decimal">
 <li>How would you usually write this code?</li>
 </ol>
 <pre class="r"><code>`+`(1, `*`(2, 3))</code></pre>
 <pre><code>## [1] 7</code></pre>
+<pre class="r"><code>2 * 3 + 1</code></pre>
+<pre><code>## [1] 7</code></pre>
 <ol start="4" style="list-style-type: decimal">
 <li>How could you make this call easier to read?</li>
 </ol>
 <pre class="r"><code>mean(, TRUE, x = c(1:10, NA))</code></pre>
 <pre><code>## [1] 5.5</code></pre>
+<pre class="r"><code># mean(x = c(1:10, NA), na.rm = TRUE)</code></pre>
 <ol start="5" style="list-style-type: decimal">
 <li>Does the following code throw an error when executed? Why or why
 not?</li>
 </ol>
+<p>No because b is never utilized in f2.</p>
 <pre class="r"><code>f2 &lt;- function(a, b) {
   a * 10
 }
 f2(10, stop(&quot;This is an error!&quot;))</code></pre>
 <pre><code>## [1] 100</code></pre>
 <ol start="6" style="list-style-type: decimal">
-<li><p>What is an infix function? How do you write it? What’s a
-replacement function? How do you write it?</p></li>
-<li><p>How do you ensure that cleanup action occurs regardless of how a
-function exits?</p></li>
+<li>What is an infix function? How do you write it? What’s a replacement
+function? How do you write it?</li>
 </ol>
+<ul>
+<li><p>infix function: function is called between arguments</p></li>
+<li><p>replacement function: function that replace values by
+assignment</p></li>
+</ul>
+<ol start="7" style="list-style-type: decimal">
+<li>How do you ensure that cleanup action occurs regardless of how a
+function exits?</li>
+</ol>
+<ul>
+<li>use <code>on.exit()</code></li>
+</ul>
 </div>
 </div>
 <div id="function-fundamentals" class="section level1">
@@ -557,13 +576,13 @@ doesn’t that makes ense in R?</li>
 <pre class="r"><code>match.fun(mean)</code></pre>
 <pre><code>## function (x, ...) 
 ## UseMethod(&quot;mean&quot;)
-## &lt;bytecode: 0x0000029e3d41ae08&gt;
+## &lt;bytecode: 0x0000016c98006d68&gt;
 ## &lt;environment: namespace:base&gt;</code></pre>
 <pre class="r"><code>x &lt;- mean
 match.fun(x)</code></pre>
 <pre><code>## function (x, ...) 
 ## UseMethod(&quot;mean&quot;)
-## &lt;bytecode: 0x0000029e3d41ae08&gt;
+## &lt;bytecode: 0x0000016c98006d68&gt;
 ## &lt;environment: namespace:base&gt;</code></pre>
 <pre class="r"><code>body(mean)</code></pre>
 <pre><code>## UseMethod(&quot;mean&quot;)</code></pre>
@@ -620,7 +639,7 @@ funs &lt;- Filter(is.function, objs)</code></pre>
 <li>Which base function has the most arguments?</li>
 </ol>
 <pre class="r"><code>params &lt;- lapply(funs, formals)
-param_values &lt;- unlist(lapply(params, length))
+param_values &lt;- unlist(lapply(params, length)) # sapply will return vector instead of list
 which(param_values == max(param_values))</code></pre>
 <pre><code>## scan 
 ## 1057</code></pre>
@@ -1023,6 +1042,7 @@ x_ok(NULL)</code></pre>
 <p><code>&amp;</code> is the vectorized version of
 <code>&amp;&amp;</code> so a vector will always be output with
 <code>&amp;</code>.</p>
+<p><code>&amp;</code> will run all boolean comparisons.</p>
 <pre class="r"><code># testing
 x &lt;- NULL
 
@@ -1089,7 +1109,7 @@ f1()</code></pre>
   print(x)
 }
 show_time()</code></pre>
-<pre><code>## [1] &quot;2022-10-09 15:54:35 PDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-10-13 16:42:04 PDT&quot;</code></pre>
 <ol start="6" style="list-style-type: decimal">
 <li>How many arguments are required when calling
 <code>library()</code>?</li>
@@ -1100,6 +1120,637 @@ show_time()</code></pre>
 ##     verbose = getOption(&quot;verbose&quot;), mask.ok, exclude, include.only, 
 ##     attach.required = missing(include.only)) 
 ## NULL</code></pre>
+</div>
+</div>
+<div id="dot-dot-dot" class="section level1">
+<h1>6.6 <code>...</code> (dot-dot-dot)</h1>
+<ul>
+<li><code>...</code> allows functions to take any number of additional
+arguments, varargs in other languages; also can use it to pass arguments
+to other functions</li>
+</ul>
+<pre class="r"><code>i01 &lt;- function(y, z) {
+  list(y = y, z = z)
+}
+
+i02 &lt;- function(x, ...) {
+  i01(...)
+}
+
+str(i02(x = 1, y = 2, z = 3))</code></pre>
+<pre><code>## List of 2
+##  $ y: num 2
+##  $ z: num 3</code></pre>
+<ul>
+<li>can use <code>..N</code> to refer to elements of <code>...</code> by
+index</li>
+</ul>
+<p>*<code>list(...)</code> evaluates arguments and stores them as a
+list</p>
+<pre class="r"><code>i04 &lt;- function(...) {
+  list(...)
+}
+str(i04(a = 1, b = 2))</code></pre>
+<pre><code>## List of 2
+##  $ a: num 1
+##  $ b: num 2</code></pre>
+<ul>
+<li><p>uses of <code>...</code>:</p>
+<ul>
+<li>pass additional arguments to a function if the function is an
+argument</li>
+</ul></li>
+</ul>
+<pre class="r"><code>x &lt;- list(c(1, 3, NA), c(4, NA, 6))
+str(lapply(x, mean, na.rm = TRUE)) # na.rm is an argument for mean()</code></pre>
+<pre><code>## List of 2
+##  $ : num 2
+##  $ : num 5</code></pre>
+<ul>
+<li>certain functions can take an arbitrary amount of arguments (ie:
+print)</li>
+</ul>
+<pre class="r"><code>print(factor(letters), max.levels = 4)</code></pre>
+<pre><code>##  [1] a b c d e f g h i j k l m n o p q r s t u v w x y z
+## 26 Levels: a b c ... z</code></pre>
+<pre class="r"><code>print(y ~ x, showEnv = TRUE)</code></pre>
+<pre><code>## y ~ x
+## &lt;environment: R_GlobalEnv&gt;</code></pre>
+<ul>
+<li><p>downsides of <code>...</code>:</p>
+<ul>
+<li><p>must be explicit in where additional arguments are
+utilized</p></li>
+<li><p>misspelled arguments will not raise errors</p></li>
+</ul></li>
+</ul>
+<div id="exercises-3" class="section level2">
+<h2>6.6.1 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Explain the following results:</li>
+</ol>
+<pre class="r"><code># sum(..., na.rm = FALSE)
+# mean(x, trim = 0, na.rm = FALSE, ...)
+
+sum(1, 2, 3) # expected behavior</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>mean(1, 2, 3) # x = 1, mean of 1 is 1, trim set to 2, third argument is not used at all</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>sum(1, 2, 3, na.omit = TRUE) # argument name is na.rm not na.omit, TRUE is cast to 1</code></pre>
+<pre><code>## [1] 7</code></pre>
+<pre class="r"><code>sum(1, 2, 3, na.omit = FALSE)</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>mean(1, 2, 3, na.omit = TRUE) # same typo on argument name, na.omit is passed in ...</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code># mean testing
+
+# second argument is a numeric, value is set to trim
+mean(iris$Sepal.Length)</code></pre>
+<pre><code>## [1] 5.843333</code></pre>
+<pre class="r"><code>mean(iris$Sepal.Length, trim = 0.3)</code></pre>
+<pre><code>## [1] 5.815</code></pre>
+<pre class="r"><code>mean(iris$Sepal.Length, 0.3)</code></pre>
+<pre><code>## [1] 5.815</code></pre>
+<pre class="r"><code># output is the same with third argument, argument is passed in ...
+mean(iris$Sepal.Length, 0.3, 3)</code></pre>
+<pre><code>## [1] 5.815</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Explain how to find the documentation for the named arguments in the
+following function call:</li>
+</ol>
+<p>Named arguments in <code>plot</code> can be found in the
+documentation for <code>par()</code>.</p>
+<pre class="r"><code>plot(1:10, col = &quot;red&quot;, pch = 20, xlab = &quot;x&quot;, col.lab = &quot;blue&quot;)</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>Why does <code>plot(1:10, col = &quot;red&quot;)</code> only color the points,
+not the axes or labels? Read the source code of
+<code>plot.default()</code> to find out.</li>
+</ol>
+<p>To change the color of axes or labels, you have to use the
+<code>col.axis</code> and <code>col.lab</code> arguments (found in the
+<code>par()</code> documentation).</p>
+</div>
+</div>
+<div id="exiting-a-function" class="section level1">
+<h1>6.7 Exiting a function</h1>
+<ul>
+<li>functions exit by returning a value or throwing an error</li>
+</ul>
+<div id="implicit-versus-explicit-returns" class="section level2">
+<h2>6.7.1 Implicit versus explicit returns</h2>
+<ul>
+<li><p>two ways a function can return a value:</p>
+<ul>
+<li>implicitly: last evaluated expression is the return value</li>
+</ul></li>
+</ul>
+<pre class="r"><code>j01 &lt;- function(x) {
+  if (x &lt; 10) {
+    0
+  } else {
+    10
+  }
+}
+j01(5)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>j01(15)</code></pre>
+<pre><code>## [1] 10</code></pre>
+<ul>
+<li>explicitly: call <code>return()</code></li>
+</ul>
+<pre class="r"><code>j02 &lt;- function(x) {
+  if (x &lt; 10) {
+    return(0)
+  } else {
+    return(10)
+  }
+}</code></pre>
+</div>
+<div id="invisible-values" class="section level2">
+<h2>6.7.2 Invisible values</h2>
+<ul>
+<li>can prevent automatic printing when invoking a function with
+<code>invisible()</code></li>
+</ul>
+<pre class="r"><code>j04 &lt;- function() invisible(1)
+j04()</code></pre>
+<pre class="r"><code># check that the function output actually exists
+
+print(j04())</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>(j04())</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code># withVisible() returns the value and visibility flag
+str(withVisible(j04()))</code></pre>
+<pre><code>## List of 2
+##  $ value  : num 1
+##  $ visible: logi FALSE</code></pre>
+<ul>
+<li><p><code>&lt;-</code> returns invisibly</p></li>
+<li><p>please don’t chain variable assignments</p></li>
+</ul>
+</div>
+<div id="errors" class="section level2">
+<h2>6.7.3 Errors</h2>
+<ul>
+<li><code>stop()</code> throws errors, will terminate function
+execution</li>
+</ul>
+<pre class="r"><code>j05 &lt;- function() {
+  stop(&quot;I&#39;m an error&quot;)
+  return(10)
+}
+j05()</code></pre>
+</div>
+<div id="exit-handlers" class="section level2">
+<h2>6.7.4 Exit handlers</h2>
+<ul>
+<li><code>on.exit()</code> to set up an exit handler: changes to the
+global environment from a function are reset</li>
+</ul>
+<pre class="r"><code>j06 &lt;- function(x) {
+  cat(&quot;Hello\n&quot;)
+  on.exit(cat(&quot;Goodbye!\n&quot;), add = TRUE) 
+  # add = TRUE necessary to retain previous exit handlers
+  
+  if (x) {
+    return(10)
+  } else {
+    stop(&quot;Error&quot;)
+  }
+}
+
+j06(TRUE)
+j06(FALSE)</code></pre>
+<pre class="r"><code>cleanup &lt;- function(dir, code) {
+  old_dir &lt;- setwd(dir)
+  on.exit(setwd(old_dir), add = TRUE)
+  
+  old_opt &lt;- options(stringsAsFactors = FALSE)
+  on.exit(options(old_opt), add = TRUE)
+}</code></pre>
+<pre class="r"><code>with_dir &lt;- function(dir, code) {
+  old &lt;- setwd(dir)
+  on.exit(setwd(old), add = TRUE)
+
+  force(code)
+}
+
+getwd()</code></pre>
+<pre><code>## [1] &quot;C:/Users/paulo/Documents/Maloof/rclub/AdvancedR-ed2_PauloMagalang/06-functions&quot;</code></pre>
+<pre class="r"><code>with_dir(&quot;~&quot;, getwd())</code></pre>
+<pre><code>## [1] &quot;C:/Users/paulo/Documents&quot;</code></pre>
+<pre class="r"><code>j08 &lt;- function() {
+  on.exit(message(&quot;a&quot;), add = TRUE)
+  on.exit(message(&quot;b&quot;), add = TRUE)
+}
+j08()</code></pre>
+<pre><code>## a</code></pre>
+<pre><code>## b</code></pre>
+<pre class="r"><code>j09 &lt;- function() {
+  on.exit(message(&quot;a&quot;), add = TRUE, after = FALSE)
+  on.exit(message(&quot;b&quot;), add = TRUE, after = FALSE)
+}
+j09()</code></pre>
+<pre><code>## b</code></pre>
+<pre><code>## a</code></pre>
+</div>
+<div id="exercises-4" class="section level2">
+<h2>6.7.5 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>What does <code>load()</code> return? Why don’t you normally see
+these values?</li>
+</ol>
+<p><code>load()</code> loads in objects saved in <code>.RData</code>
+files. From the source code, it returns another <code>load()</code> call
+wrapped in <code>.Internal()</code>. Not exactly sure how the recursive
+call is broken but it probably has something to do with
+<code>.Internal()</code>. Values are not printed since
+<code>verbose = FALSE</code> is default.</p>
+<ol start="2" style="list-style-type: decimal">
+<li>What does <code>write.table()</code> return? What would be more
+useful?</li>
+</ol>
+<p><code>write.table()</code> returns <code>NULL</code>. It would be
+more useful to print out some sort of confirmation that the data frame
+was successfully written.</p>
+<pre class="r"><code>df &lt;- data.frame(x = 1, y = 2)
+(write.table(df))</code></pre>
+<pre><code>## &quot;x&quot; &quot;y&quot;
+## &quot;1&quot; 1 2</code></pre>
+<pre><code>## NULL</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>How does the <code>chdir</code> parameter of <code>source()</code>
+compare to <code>with_dir()</code>? Why might you prefer one to the
+other?</li>
+</ol>
+<p><code>chdir</code> is a Boolean that is set to <code>FALSE</code> by
+default. When <code>chdir</code> is <code>TRUE</code>, the working
+directory is changed to the filepath given by the <code>file</code>
+argument. <code>with_dir()</code> does the same thing, but the filepath
+is explicitly defined by the user instead of being taken by another
+function argument. If the code needs to be executed in a different
+directory than the R script is in, than <code>with_dir()</code> is
+preferred since it is flexible.</p>
+<ol start="4" style="list-style-type: decimal">
+<li>Write a function that opens a graphics device, runs the supplied
+code, and closes the graphics device (always, regardless of whether or
+not the plotting code works).</li>
+</ol>
+<pre class="r"><code>q4_fxn &lt;- function() {
+    windows()
+    on.exit(dev.off(), add = TRUE)
+}
+#q4_fxn()</code></pre>
+<ol start="5" style="list-style-type: decimal">
+<li>We can use <code>on.exit()</code> to implement a simple version of
+<code>capture.output()</code>.</li>
+</ol>
+<pre class="r"><code>capture.output2 &lt;- function(code) {
+  temp &lt;- tempfile() # generate path to tempfile
+  on.exit(unlink(temp), add = TRUE, after = TRUE) # delete tempfile
+
+  sink(temp) # generate the tempfile, redirect console outputs to tempfile
+  on.exit(sink(), add = TRUE, after = TRUE) # outputs redirected back to console
+
+  force(code)
+  readLines(temp)
+}
+capture.output2(cat(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, sep = &quot;\n&quot;))</code></pre>
+<pre><code>## [1] &quot;a&quot; &quot;b&quot; &quot;c&quot;</code></pre>
+<p>Compare <code>capture.output()</code> to
+<code>capture.output2()</code>. How do the functions differ? What
+features have I removed to make the key ideas easier to see? How have I
+rewritten the key ideas so they’re easier to understand?</p>
+<pre class="r"><code>capture.output</code></pre>
+<pre><code>## function (..., file = NULL, append = FALSE, type = c(&quot;output&quot;, 
+##     &quot;message&quot;), split = FALSE) 
+## {
+##     type &lt;- match.arg(type)
+##     rval &lt;- NULL
+##     closeit &lt;- TRUE
+##     if (is.null(file)) 
+##         file &lt;- textConnection(&quot;rval&quot;, &quot;w&quot;, local = TRUE)
+##     else if (is.character(file)) 
+##         file &lt;- file(file, if (append) 
+##             &quot;a&quot;
+##         else &quot;w&quot;)
+##     else if (inherits(file, &quot;connection&quot;)) {
+##         if (!isOpen(file)) 
+##             open(file, if (append) 
+##                 &quot;a&quot;
+##             else &quot;w&quot;)
+##         else closeit &lt;- FALSE
+##     }
+##     else stop(&quot;&#39;file&#39; must be NULL, a character string or a connection&quot;)
+##     sink(file, type = type, split = split)
+##     on.exit({
+##         sink(type = type, split = split)
+##         if (closeit) close(file)
+##     })
+##     for (i in seq_len(...length())) {
+##         out &lt;- withVisible(...elt(i))
+##         if (out$visible) 
+##             print(out$value)
+##     }
+##     on.exit()
+##     sink(type = type, split = split)
+##     if (closeit) 
+##         close(file)
+##     if (is.null(rval)) 
+##         invisible(NULL)
+##     else rval
+## }
+## &lt;bytecode: 0x0000016c98153370&gt;
+## &lt;environment: namespace:utils&gt;</code></pre>
+</div>
+</div>
+<div id="function-forms" class="section level1">
+<h1>6.8 Function forms</h1>
+<ul>
+<li><p>4 types of function calls:</p>
+<ul>
+<li><p>prefix: function name comes before arguments</p></li>
+<li><p>infix: function name comes between arguments</p></li>
+<li><p>replacement: functions that replace values by assignment</p></li>
+<li><p>special: examples - <code>[[</code>, <code>if</code>,
+<code>for</code></p></li>
+</ul></li>
+</ul>
+<div id="rewriting-to-prefix-form" class="section level2">
+<h2>6.8.1 Rewriting to prefix form</h2>
+<pre class="r"><code>x + y
+`+`(x, y)
+
+names(df) &lt;- c(&quot;x&quot;, &quot;y&quot;, &quot;z&quot;)
+`names&lt;-`(df, c(&quot;x&quot;, &quot;y&quot;, &quot;z&quot;))
+
+for(i in 1:10) print(i)
+`for`(i, 1:10, print(i))</code></pre>
+<pre class="r"><code># equivalent outputs
+
+add &lt;- function(x, y) x + y # custom function
+lapply(list(1:3, 4:5), add, 3)</code></pre>
+<pre><code>## [[1]]
+## [1] 4 5 6
+## 
+## [[2]]
+## [1] 7 8</code></pre>
+<pre class="r"><code>lapply(list(1:3, 4:5), `+`, 3) # using existing `+`</code></pre>
+<pre><code>## [[1]]
+## [1] 4 5 6
+## 
+## [[2]]
+## [1] 7 8</code></pre>
+</div>
+<div id="prefix-form" class="section level2">
+<h2>6.8.2 Prefix form</h2>
+<ul>
+<li><p>specify arguments in prefix form in 3 ways:</p>
+<ul>
+<li><p>by position</p></li>
+<li><p>using partial matching, can output waring with
+<code>warnPartialMatchArgs</code> option</p></li>
+<li><p>by name</p></li>
+</ul></li>
+</ul>
+<pre class="r"><code>k01 &lt;- function(abcdef, bcde1, bcde2) {
+  list(a = abcdef, b1 = bcde1, b2 = bcde2)
+}
+
+# by position
+str(k01(1, 2, 3))</code></pre>
+<pre><code>## List of 3
+##  $ a : num 1
+##  $ b1: num 2
+##  $ b2: num 3</code></pre>
+<pre class="r"><code># by name: match has priority
+str(k01(2, 3, abcdef = 1))</code></pre>
+<pre><code>## List of 3
+##  $ a : num 1
+##  $ b1: num 2
+##  $ b2: num 3</code></pre>
+<pre class="r"><code># partial matching: match has priority
+str(k01(2, 3, a = 1))</code></pre>
+<pre><code>## List of 3
+##  $ a : num 1
+##  $ b1: num 2
+##  $ b2: num 3</code></pre>
+<pre class="r"><code># But this doesn&#39;t work because abbreviation is ambiguous
+#str(k01(1, 3, b = 1))</code></pre>
+</div>
+<div id="infix-functions" class="section level2">
+<h2>6.8.3 Infix functions</h2>
+<ul>
+<li>can create custom infix functions that start and end with
+<code>%</code>, can escape special characters with <code>\</code> when
+defining the function</li>
+</ul>
+<pre class="r"><code>`%+%` &lt;- function(a, b) paste0(a, b)
+&quot;new &quot; %+% &quot;string&quot;</code></pre>
+<pre><code>## [1] &quot;new string&quot;</code></pre>
+<pre class="r"><code>`% %` &lt;- function(a, b) paste(a, b)
+`%/\\%` &lt;- function(a, b) paste(a, b)
+
+&quot;a&quot; % % &quot;b&quot;</code></pre>
+<pre><code>## [1] &quot;a b&quot;</code></pre>
+<pre class="r"><code>&quot;a&quot; %/\% &quot;b&quot;</code></pre>
+<pre><code>## [1] &quot;a b&quot;</code></pre>
+<ul>
+<li><p>infix operators are always composed left to right</p></li>
+<li><p><code>+</code> and <code>-</code> can be called with a single
+argument</p></li>
+</ul>
+</div>
+<div id="replacement-functions" class="section level2">
+<h2>6.8.4 Replacement functions</h2>
+<ul>
+<li>functions that modify arguments in place, have name
+<code>xxx&lt;-</code>, have arguments <code>x</code> and
+<code>value</code>, and return modified object</li>
+</ul>
+<pre class="r"><code>`second&lt;-` &lt;- function(x, value) {
+  x[2] &lt;- value
+  x
+}
+
+x &lt;- 1:10
+second(x) &lt;- 5L # second element modified
+x</code></pre>
+<pre><code>##  [1]  1  5  3  4  5  6  7  8  9 10</code></pre>
+<ul>
+<li>copy on modify behavior</li>
+</ul>
+<pre class="r"><code>library(lobstr)
+
+x &lt;- 1:10
+tracemem(x)</code></pre>
+<pre><code>## [1] &quot;&lt;0000016C9C32D0A8&gt;&quot;</code></pre>
+<pre class="r"><code>second(x) &lt;- 6L</code></pre>
+<pre><code>## tracemem[0x0000016c9c32d0a8 -&gt; 0x0000016c9bf98e18]: eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call &lt;Anonymous&gt; evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file &lt;Anonymous&gt; &lt;Anonymous&gt; 
+## tracemem[0x0000016c9bf98e18 -&gt; 0x0000016c9c255528]: second&lt;- eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call &lt;Anonymous&gt; evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file &lt;Anonymous&gt; &lt;Anonymous&gt;</code></pre>
+<pre class="r"><code>untracemem(x)</code></pre>
+<ul>
+<li>if additional arguments are needed for a replacement function, put
+them between <code>x</code> and <code>value</code></li>
+</ul>
+<pre class="r"><code>`modify&lt;-` &lt;- function(x, position, value) {
+  x[position] &lt;- value
+  x
+}
+
+modify(x, 1) &lt;- 10
+x</code></pre>
+<pre><code>##  [1] 10  6  3  4  5  6  7  8  9 10</code></pre>
+<pre class="r"><code># behind the scenes, call is converted to
+x &lt;- `modify&lt;-`(x, 1, 10)</code></pre>
+</div>
+<div id="special-forms" class="section level2">
+<h2>6.8.5 Special forms</h2>
+<ul>
+<li><p>examples: parentheses, subsetting, control flow,
+<code>function</code> functions</p></li>
+<li><p>implemented in C</p></li>
+</ul>
+</div>
+<div id="exercises-5" class="section level2">
+<h2>6.8.6 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Rewrite the following code snippets into prefix form:</li>
+</ol>
+<pre class="r"><code>1 + 2 + 3</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>`+`(`+`(1, 2), 3)</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>1 + (2 + 3)</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>`+`(1, `+`(2, 3))</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>x &lt;- 1:10
+n &lt;- 1
+if (length(x) &lt;= 5) x[[5]] else x[[n]]</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>`if`(length(x) &lt;= 5, `[[`(x, 5), `[[`(x, n))</code></pre>
+<pre><code>## [1] 1</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Clarify the following list of odd function calls:</li>
+</ol>
+<pre class="r"><code>#x &lt;- sample(replace = TRUE, 20, x = c(1:10, NA))
+x &lt;- sample(x = c(1:10, NA), size = 20, replace = TRUE)
+
+#y &lt;- runif(min = 0, max = 1, 20)
+y &lt;- runif(n = 20, min = 0, max = 1)
+
+#cor(m = &quot;k&quot;, y = y, u = &quot;p&quot;, x = x)
+cor(x = x, y = y, use = &quot;pairwise.complete.obs&quot;, method = &quot;kendall&quot;)</code></pre>
+<pre><code>## [1] -0.397236</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>Explain why the following code fails:</li>
+</ol>
+<pre class="r"><code>`modify&lt;-` &lt;- function(x, position, value) {
+  x[position] &lt;- value
+  x
+}
+
+modify(get(&quot;x&quot;), 1) &lt;- 10
+
+# call is converted to:
+get(&quot;x&quot;) &lt;- `modify&lt;-`(get(&quot;x&quot;), 1, 10)
+
+# I don&#39;t think get() is meant to be a replacement function</code></pre>
+<ol start="4" style="list-style-type: decimal">
+<li>Create a replacement function that modifies a random location in a
+vector.</li>
+</ol>
+<pre class="r"><code>`random_replace&lt;-` &lt;- function(x, value) {
+    index &lt;- sample(x, size = length(x))[1]
+    x[index] &lt;- value
+    x
+}
+
+x &lt;- 1:10
+random_replace(x) &lt;- 999
+x</code></pre>
+<pre><code>##  [1]   1   2   3 999   5   6   7   8   9  10</code></pre>
+<ol start="5" style="list-style-type: decimal">
+<li>Write your own version of <code>+</code> that pastes its inputs
+together if they are character vectors but behaves as usual
+otherwise.</li>
+</ol>
+<pre class="r"><code>`+` &lt;- function(a, b) {
+    if (is.character(a) | is.character(b)) {
+        return(paste0(a, b))
+    }
+    else {
+        return(sum(a, b))
+    }
+}
+
+1 + 2</code></pre>
+<pre><code>## [1] 3</code></pre>
+<pre class="r"><code>&quot;a&quot; + &quot;b&quot;</code></pre>
+<pre><code>## [1] &quot;ab&quot;</code></pre>
+<ol start="6" style="list-style-type: decimal">
+<li>Create a list of all the replacement functions found in the base
+package. Which ones are primitive functions? (Hint: use
+<code>apropos()</code>.)</li>
+</ol>
+<pre class="r"><code>replacement_functions &lt;- apropos(&quot;&lt;-$&quot;, mode = &quot;function&quot;)
+is_replacement_function &lt;- sapply(replacement_functions, is.primitive)
+
+replacement_functions[is_replacement_function]</code></pre>
+<pre><code>## character(0)</code></pre>
+<ol start="7" style="list-style-type: decimal">
+<li>What are valid names for user-created infix functions?</li>
+</ol>
+<p>Valid names for user-created infix functions are names that start and
+end with <code>%</code>.</p>
+<ol start="8" style="list-style-type: decimal">
+<li>Create an infix <code>xor()</code> operator.</li>
+</ol>
+<p>XOR is defined as: (P OR Q) AND NOT (P AND Q) (from wikipedia)</p>
+<pre class="r"><code>`%xor%` &lt;- function(a, b) {
+    (a | b) &amp; !(a &amp; b)
+}
+
+# test
+FALSE %xor% FALSE</code></pre>
+<pre><code>## [1] FALSE</code></pre>
+<pre class="r"><code>FALSE %xor% TRUE</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>TRUE %xor% FALSE</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>TRUE %xor% TRUE</code></pre>
+<pre><code>## [1] FALSE</code></pre>
+<ol start="9" style="list-style-type: decimal">
+<li>Create infix versions of the set functions <code>intersect()</code>,
+<code>union()</code>, and <code>setdiff()</code>. You might call them
+<code>%n%</code>, <code>%u%</code>, and <code>%/%</code> to match
+conventions from mathematics.</li>
+</ol>
+<pre class="r"><code>`%n%` &lt;- function(a, b) {
+    intersect(a, b)
+}
+
+`%u%` &lt;- function(a, b) {
+    union(a, b)
+}
+
+`%/%` &lt;- function(a, b) {
+    setdiff(a, b)
+}
+
+a &lt;- c(1, 2, 4, 5)
+b &lt;- c(2, 3, 4)
+
+a %n% b</code></pre>
+<pre><code>## [1] 2 4</code></pre>
+<pre class="r"><code>a %u% b</code></pre>
+<pre><code>## [1] 1 2 4 5 3</code></pre>
+<pre class="r"><code>a %/% b</code></pre>
+<pre><code>## [1] 1 5</code></pre>
+<pre class="r"><code>b %/% a</code></pre>
+<pre><code>## [1] 3</code></pre>
 </div>
 </div>
 
