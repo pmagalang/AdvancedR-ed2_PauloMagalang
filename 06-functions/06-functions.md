@@ -337,7 +337,7 @@ match.fun(mean)
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x0000016c98006d68>
+## <bytecode: 0x000001cd55298c78>
 ## <environment: namespace:base>
 ```
 
@@ -349,7 +349,7 @@ match.fun(x)
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x0000016c98006d68>
+## <bytecode: 0x000001cd55298c78>
 ## <environment: namespace:base>
 ```
 
@@ -1196,7 +1196,7 @@ show_time()
 ```
 
 ```
-## [1] "2022-10-13 16:42:04 PDT"
+## [1] "2022-10-17 08:49:35 PDT"
 ```
 
 6. How many arguments are required when calling `library()`?
@@ -1716,7 +1716,7 @@ capture.output
 ##         invisible(NULL)
 ##     else rval
 ## }
-## <bytecode: 0x0000016c98153370>
+## <bytecode: 0x000001cd553d13e0>
 ## <environment: namespace:utils>
 ```
 
@@ -1901,7 +1901,7 @@ tracemem(x)
 ```
 
 ```
-## [1] "<0000016C9C32D0A8>"
+## [1] "<000001CD595F7148>"
 ```
 
 ```r
@@ -1909,8 +1909,8 @@ second(x) <- 6L
 ```
 
 ```
-## tracemem[0x0000016c9c32d0a8 -> 0x0000016c9bf98e18]: eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call <Anonymous> evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file <Anonymous> <Anonymous> 
-## tracemem[0x0000016c9bf98e18 -> 0x0000016c9c255528]: second<- eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call <Anonymous> evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file <Anonymous> <Anonymous>
+## tracemem[0x000001cd595f7148 -> 0x000001cd5925ff68]: eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call <Anonymous> evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file <Anonymous> <Anonymous> 
+## tracemem[0x000001cd5925ff68 -> 0x000001cd595215f8]: second<- eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call <Anonymous> evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file <Anonymous> <Anonymous>
 ```
 
 ```r
@@ -2016,7 +2016,7 @@ cor(x = x, y = y, use = "pairwise.complete.obs", method = "kendall")
 ```
 
 ```
-## [1] -0.397236
+## [1] 0.04399857
 ```
 
 3. Explain why the following code fails:
@@ -2052,7 +2052,7 @@ x
 ```
 
 ```
-##  [1]   1   2   3 999   5   6   7   8   9  10
+##  [1]   1 999   3   4   5   6   7   8   9  10
 ```
 
 5. Write your own version of `+` that pastes its inputs together if they are character
@@ -2090,13 +2090,17 @@ ones are primitive functions? (Hint: use `apropos()`.)
 
 ```r
 replacement_functions <- apropos("<-$", mode = "function")
-is_replacement_function <- sapply(replacement_functions, is.primitive)
+is_replacement_function <- sapply(replacement_functions, function(x) is.primitive(get(x)))
 
 replacement_functions[is_replacement_function]
 ```
 
 ```
-## character(0)
+##  [1] "$<-"            "@<-"            "[[<-"           "[<-"           
+##  [5] "<-"             "<<-"            "attr<-"         "attributes<-"  
+##  [9] "class<-"        "dim<-"          "dimnames<-"     "el<-"          
+## [13] "environment<-"  "length<-"       "levels<-"       "names<-"       
+## [17] "oldClass<-"     "storage.mode<-"
 ```
 
 7. What are valid names for user-created infix functions?

@@ -576,13 +576,13 @@ doesn’t that makes ense in R?</li>
 <pre class="r"><code>match.fun(mean)</code></pre>
 <pre><code>## function (x, ...) 
 ## UseMethod(&quot;mean&quot;)
-## &lt;bytecode: 0x0000016c98006d68&gt;
+## &lt;bytecode: 0x000001cd55298c78&gt;
 ## &lt;environment: namespace:base&gt;</code></pre>
 <pre class="r"><code>x &lt;- mean
 match.fun(x)</code></pre>
 <pre><code>## function (x, ...) 
 ## UseMethod(&quot;mean&quot;)
-## &lt;bytecode: 0x0000016c98006d68&gt;
+## &lt;bytecode: 0x000001cd55298c78&gt;
 ## &lt;environment: namespace:base&gt;</code></pre>
 <pre class="r"><code>body(mean)</code></pre>
 <pre><code>## UseMethod(&quot;mean&quot;)</code></pre>
@@ -1109,7 +1109,7 @@ f1()</code></pre>
   print(x)
 }
 show_time()</code></pre>
-<pre><code>## [1] &quot;2022-10-13 16:42:04 PDT&quot;</code></pre>
+<pre><code>## [1] &quot;2022-10-17 08:49:35 PDT&quot;</code></pre>
 <ol start="6" style="list-style-type: decimal">
 <li>How many arguments are required when calling
 <code>library()</code>?</li>
@@ -1461,7 +1461,7 @@ rewritten the key ideas so they’re easier to understand?</p>
 ##         invisible(NULL)
 ##     else rval
 ## }
-## &lt;bytecode: 0x0000016c98153370&gt;
+## &lt;bytecode: 0x000001cd553d13e0&gt;
 ## &lt;environment: namespace:utils&gt;</code></pre>
 </div>
 </div>
@@ -1585,10 +1585,10 @@ x</code></pre>
 
 x &lt;- 1:10
 tracemem(x)</code></pre>
-<pre><code>## [1] &quot;&lt;0000016C9C32D0A8&gt;&quot;</code></pre>
+<pre><code>## [1] &quot;&lt;000001CD595F7148&gt;&quot;</code></pre>
 <pre class="r"><code>second(x) &lt;- 6L</code></pre>
-<pre><code>## tracemem[0x0000016c9c32d0a8 -&gt; 0x0000016c9bf98e18]: eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call &lt;Anonymous&gt; evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file &lt;Anonymous&gt; &lt;Anonymous&gt; 
-## tracemem[0x0000016c9bf98e18 -&gt; 0x0000016c9c255528]: second&lt;- eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call &lt;Anonymous&gt; evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file &lt;Anonymous&gt; &lt;Anonymous&gt;</code></pre>
+<pre><code>## tracemem[0x000001cd595f7148 -&gt; 0x000001cd5925ff68]: eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call &lt;Anonymous&gt; evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file &lt;Anonymous&gt; &lt;Anonymous&gt; 
+## tracemem[0x000001cd5925ff68 -&gt; 0x000001cd595215f8]: second&lt;- eval eval eval_with_user_handlers withVisible withCallingHandlers handle timing_fn evaluate_call &lt;Anonymous&gt; evaluate in_dir in_input_dir eng_r block_exec call_block process_group.block process_group withCallingHandlers process_file &lt;Anonymous&gt; &lt;Anonymous&gt;</code></pre>
 <pre class="r"><code>untracemem(x)</code></pre>
 <ul>
 <li>if additional arguments are needed for a replacement function, put
@@ -1643,7 +1643,7 @@ y &lt;- runif(n = 20, min = 0, max = 1)
 
 #cor(m = &quot;k&quot;, y = y, u = &quot;p&quot;, x = x)
 cor(x = x, y = y, use = &quot;pairwise.complete.obs&quot;, method = &quot;kendall&quot;)</code></pre>
-<pre><code>## [1] -0.397236</code></pre>
+<pre><code>## [1] 0.04399857</code></pre>
 <ol start="3" style="list-style-type: decimal">
 <li>Explain why the following code fails:</li>
 </ol>
@@ -1671,7 +1671,7 @@ vector.</li>
 x &lt;- 1:10
 random_replace(x) &lt;- 999
 x</code></pre>
-<pre><code>##  [1]   1   2   3 999   5   6   7   8   9  10</code></pre>
+<pre><code>##  [1]   1 999   3   4   5   6   7   8   9  10</code></pre>
 <ol start="5" style="list-style-type: decimal">
 <li>Write your own version of <code>+</code> that pastes its inputs
 together if they are character vectors but behaves as usual
@@ -1696,10 +1696,14 @@ package. Which ones are primitive functions? (Hint: use
 <code>apropos()</code>.)</li>
 </ol>
 <pre class="r"><code>replacement_functions &lt;- apropos(&quot;&lt;-$&quot;, mode = &quot;function&quot;)
-is_replacement_function &lt;- sapply(replacement_functions, is.primitive)
+is_replacement_function &lt;- sapply(replacement_functions, function(x) is.primitive(get(x)))
 
 replacement_functions[is_replacement_function]</code></pre>
-<pre><code>## character(0)</code></pre>
+<pre><code>##  [1] &quot;$&lt;-&quot;            &quot;@&lt;-&quot;            &quot;[[&lt;-&quot;           &quot;[&lt;-&quot;           
+##  [5] &quot;&lt;-&quot;             &quot;&lt;&lt;-&quot;            &quot;attr&lt;-&quot;         &quot;attributes&lt;-&quot;  
+##  [9] &quot;class&lt;-&quot;        &quot;dim&lt;-&quot;          &quot;dimnames&lt;-&quot;     &quot;el&lt;-&quot;          
+## [13] &quot;environment&lt;-&quot;  &quot;length&lt;-&quot;       &quot;levels&lt;-&quot;       &quot;names&lt;-&quot;       
+## [17] &quot;oldClass&lt;-&quot;     &quot;storage.mode&lt;-&quot;</code></pre>
 <ol start="7" style="list-style-type: decimal">
 <li>What are valid names for user-created infix functions?</li>
 </ol>

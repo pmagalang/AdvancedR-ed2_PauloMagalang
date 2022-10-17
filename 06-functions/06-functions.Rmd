@@ -1156,7 +1156,7 @@ ones are primitive functions? (Hint: use `apropos()`.)
 
 ```{r}
 replacement_functions <- apropos("<-$", mode = "function")
-is_replacement_function <- sapply(replacement_functions, is.primitive)
+is_replacement_function <- sapply(replacement_functions, function(x) is.primitive(get(x)))
 
 replacement_functions[is_replacement_function]
 ```
