@@ -71,7 +71,7 @@ e1 # just prints address
 ```
 
 ```
-## <environment: 0x00000208ca1eff88>
+## <environment: 0x00000279ad5b7250>
 ```
 
 ```r
@@ -79,7 +79,7 @@ env_print(e1) # has more info
 ```
 
 ```
-## <environment: 0x00000208ca1eff88>
+## <environment: 0x00000279ad5b7250>
 ## Parent: <environment: global>
 ## Bindings:
 ## • a: <lgl>
@@ -153,7 +153,7 @@ env_parent(e2b)
 ```
 
 ```
-## <environment: 0x00000208c8dd1790>
+## <environment: 0x00000279aa22d9c8>
 ```
 
 ```r
@@ -179,7 +179,7 @@ env_parents(e2b) # by default stops at global environment
 ```
 
 ```
-## [[1]]   <env: 0x00000208c8dd1790>
+## [[1]]   <env: 0x00000279aa22d9c8>
 ## [[2]] $ <env: global>
 ```
 
@@ -188,7 +188,7 @@ env_parents(e2d) # ancestors terminate at empty environment
 ```
 
 ```
-## [[1]]   <env: 0x00000208c9274bd8>
+## [[1]]   <env: 0x00000279aa6fcdb8>
 ## [[2]] $ <env: empty>
 ```
 
@@ -199,7 +199,7 @@ env_parents(e2b, last = empty_env())
 ```
 
 ```
-##  [[1]]   <env: 0x00000208c8dd1790>
+##  [[1]]   <env: 0x00000279aa22d9c8>
 ##  [[2]] $ <env: global>
 ##  [[3]] $ <env: package:rlang>
 ##  [[4]] $ <env: package:stats>
@@ -332,7 +332,7 @@ system.time(print(b)) # now evaluated
 
 ```
 ##    user  system elapsed 
-##    0.00    0.00    1.03
+##    0.00    0.00    1.01
 ```
 
 ```r
@@ -359,7 +359,7 @@ z1
 ```
 
 ```
-## [1] 0.06715805
+## [1] 0.6675501
 ```
 
 ```r
@@ -367,7 +367,7 @@ z1
 ```
 
 ```
-## [1] 0.6608591
+## [1] 0.7362366
 ```
 
 ## 7.2.7 Exercises
@@ -529,8 +529,8 @@ where_all <- function(name, env = caller_env(), env_list = c()) {
   } 
   else {
     if (env_has(env, name)) {
-    # Success case, but do not terminate recursive loop
-    env_list <- c(env_list, env) # concatenate to env_list
+      # Success case, but do not terminate recursive loop
+      env_list <- c(env_list, env) # concatenate to env_list
     }
       
     # Recursive call, must terminate at empty env
@@ -544,7 +544,7 @@ e4a
 ```
 
 ```
-## <environment: 0x00000208c8d99908>
+## <environment: 0x00000279aee6bdc8>
 ```
 
 ```r
@@ -553,7 +553,7 @@ e4b
 ```
 
 ```
-## <environment: 0x00000208cdf68df8>
+## <environment: 0x00000279aa2902b8>
 ```
 
 ```r
@@ -562,10 +562,10 @@ where_all("a", env = e4b)
 
 ```
 ## [[1]]
-## <environment: 0x00000208cdf68df8>
+## <environment: 0x00000279aa2902b8>
 ## 
 ## [[2]]
-## <environment: 0x00000208c8d99908>
+## <environment: 0x00000279aee6bdc8>
 ```
 
 2. write a function called `fget()` that finds only function objects. It should
@@ -624,7 +624,7 @@ fget("mean", globalenv())
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x00000208ccca2d48>
+## <bytecode: 0x00000279ae07ad08>
 ## <environment: namespace:base>
 ```
 
@@ -640,7 +640,7 @@ fget("a", func_e1, inherits = FALSE)
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x00000208ccca2d48>
+## <bytecode: 0x00000279ae07ad08>
 ## <environment: namespace:base>
 ```
 
@@ -652,19 +652,445 @@ fget("a", func_e2, inherits = TRUE)
 ```
 ## function (x, ...) 
 ## UseMethod("mean")
-## <bytecode: 0x00000208ccca2d48>
+## <bytecode: 0x00000279ae07ad08>
 ## <environment: namespace:base>
 ```
 
 
+# 7.4 Special environments
+
+## 7.4.1 Package environments and the search path
+
+* every attached package becomes one of the parents of the global env, immediate
+parent is the latest loaded package
+
+* `base::search()` to see search path or `rlang::search_envs()` to view environments
 
 
+```r
+search()
+```
+
+```
+##  [1] ".GlobalEnv"        "package:rlang"     "package:stats"    
+##  [4] "package:graphics"  "package:grDevices" "package:utils"    
+##  [7] "package:datasets"  "package:methods"   "Autoloads"        
+## [10] "package:base"
+```
+
+```r
+search_envs()
+```
+
+```
+##  [[1]] $ <env: global>
+##  [[2]] $ <env: package:rlang>
+##  [[3]] $ <env: package:stats>
+##  [[4]] $ <env: package:graphics>
+##  [[5]] $ <env: package:grDevices>
+##  [[6]] $ <env: package:utils>
+##  [[7]] $ <env: package:datasets>
+##  [[8]] $ <env: package:methods>
+##  [[9]] $ <env: Autoloads>
+## [[10]] $ <env: package:base>
+```
+
+* last two (?) environments: `Autoloads` for delayed bindings, `base` for
+base package
+
+## 7.4.2 The function environment
+
+* function environment: function binds to the environment it was created in
+
+* closures: functions that capture their environments
 
 
+```r
+y <- 1
+f <- function(x) x + y
+fn_env(f) # get function environment
+```
+
+```
+## <environment: R_GlobalEnv>
+```
+
+```r
+environment(f) # access environment of f
+```
+
+```
+## <environment: R_GlobalEnv>
+```
 
 
+```r
+# difference between how g is found and how g finds its variables
+e <- env()
+e$g <- function() 1
+```
+
+## 7.4.3 Namespaces
+
+* package environment: the external interface to the package, controls how we find
+the function
+
+* namespace environment: internal interface of the package, controls how the function
+finds its variables
+
+* bindings in the package environment are also in the namespace environment
+
+* namespace environments have the same set of ancestors:
+
+  - imports environment: contains bindings to all the functions used by the
+  package, controlled by `NAMESPACE` file
+  
+  - base namespace
+  
+  - global environment
+
+## 7.4.4 Execution environments
 
 
+```r
+g <- function(x) {
+  if (!env_has(current_env(), "a")) {
+    message("Defining a")
+    a <- 1
+  } else {
+    a <- a + 1
+  }
+  a
+}
+
+g(10)
+```
+
+```
+## Defining a
+```
+
+```
+## [1] 1
+```
+
+```r
+g(10) 
+```
+
+```
+## Defining a
+```
+
+```
+## [1] 1
+```
+
+```r
+# same output because calling a function creates a new environment aka execution environment
+# parent of execution environment is function environment
+```
+
+
+```r
+h <- function(x) {
+  # 1.
+  a <- 2 # 2.
+  x + a
+}
+
+y <- h(1) # 3.
+
+# execution environment is deleted after function is run
+# but there are ways to retain execution environment
+
+h2 <- function(x) {
+  a <- x * 2
+  current_env()
+}
+
+e <- h2(x = 10)
+env_print(e) # return execution environment
+```
+
+```
+## <environment: 0x00000279af34f868>
+## Parent: <environment: global>
+## Bindings:
+## • a: <dbl>
+## • x: <dbl>
+```
+
+```r
+fn_env(h2)
+```
+
+```
+## <environment: R_GlobalEnv>
+```
+
+
+```r
+plus <- function(x) {
+  function(y) x + y
+}
+
+plus_one <- plus(1)
+plus_one
+```
+
+```
+## function(y) x + y
+## <environment: 0x00000279aa014658>
+```
+
+```r
+plus_one(2)
+```
+
+```
+## [1] 3
+```
+
+## 7.4.5 Exercises
+
+1. How is `search_envs()` different from `env_parents(global_env())`?
+
+`search_envs()` prints out the environments in the search path. `env_parents(global_env())`
+prints out all the ancestors of the global environment up to the empty environment.
+
+
+```r
+search_envs()
+```
+
+```
+##  [[1]] $ <env: global>
+##  [[2]] $ <env: package:rlang>
+##  [[3]] $ <env: package:stats>
+##  [[4]] $ <env: package:graphics>
+##  [[5]] $ <env: package:grDevices>
+##  [[6]] $ <env: package:utils>
+##  [[7]] $ <env: package:datasets>
+##  [[8]] $ <env: package:methods>
+##  [[9]] $ <env: Autoloads>
+## [[10]] $ <env: package:base>
+```
+
+```r
+env_parents(global_env())
+```
+
+```
+##  [[1]] $ <env: package:rlang>
+##  [[2]] $ <env: package:stats>
+##  [[3]] $ <env: package:graphics>
+##  [[4]] $ <env: package:grDevices>
+##  [[5]] $ <env: package:utils>
+##  [[6]] $ <env: package:datasets>
+##  [[7]] $ <env: package:methods>
+##  [[8]] $ <env: Autoloads>
+##  [[9]] $ <env: package:base>
+## [[10]] $ <env: empty>
+```
+
+2. Draw a diagram that shows the enclosing environments of this function:
+
+
+```r
+f1 <- function(x1) {
+  f2 <- function(x2) {
+    f3 <- function(x3) {
+      x1 + x2 + x3
+    }
+    f3(3)
+  }
+  f2(2)
+}
+f1(1)
+```
+
+```
+## [1] 6
+```
+
+![](ex_7.4.5_q2.jpg)
+
+3. Write an enhanced version of `str()` that provides more information about functions.
+Show where the function was found and what environment it was defined in.
+
+
+```r
+# 1. recursively look for the function
+# 2. return function and current environment, stop recursion
+
+function_str <- function(name, env) {
+    # base case, at empty env
+    if(identical(env, empty_env())) {
+        stop("function not found")
+    } else if (env_has(env, name)) {
+        # check if object is a function
+        object <- env_get(env, name)
+        if(is.function(object)) {
+            return(list(func = object, environment = env))
+        }
+    }
+    function_str(name, env_parent(env)) # recursive call
+}
+
+function_str("mean", caller_env())
+```
+
+```
+## $func
+## function (x, ...) 
+## UseMethod("mean")
+## <bytecode: 0x00000279ae07ad08>
+## <environment: namespace:base>
+## 
+## $environment
+## <environment: namespace:base>
+```
+
+```r
+function_str("fget", caller_env())
+```
+
+```
+## $func
+## function(name, env, inherits = TRUE) {
+##     # base case, at empty env
+##     if(identical(env, empty_env())) {
+##         stop("function not found")
+##     } else if(env_has(env, name)) {
+##         # check if object is a function
+##         object <- env_get(env, name)
+##         if(is.function(object)) {
+##             return(object) # terminate recursion
+##         }
+##         # if object is not a function, check to see if we need to make recursive call
+##         if(inherits == FALSE) {
+##             stop("function not found") # terminate recursion
+##         }
+##     }
+##     
+##     fget(name, env_parent(env)) # recursive call
+## }
+## <bytecode: 0x00000279a9ef1638>
+## 
+## $environment
+## <environment: R_GlobalEnv>
+```
+
+
+# 7.5 Call stacks
+
+* caller environment - `rlang::caller_env()` or `parent.frame()`: environment from which the function
+was called
+
+## 7.5.1 Simple call stacks
+
+
+```r
+f <- function(x) {
+  g(x = 2)
+}
+g <- function(x) {
+  h(x = 3)
+}
+h <- function(x) {
+  stop()
+}
+
+#f(x = 1)
+#traceback()
+
+h <- function(x) {
+  lobstr::cst()
+}
+f(x = 1)
+```
+
+```
+##     ▆
+##  1. └─global f(x = 1)
+##  2.   └─global g(x = 2)
+##  3.     └─global h(x = 3)
+##  4.       └─lobstr::cst()
+```
+
+## 7.5.2 Lazy evaluation
+
+
+```r
+a <- function(x) b(x)
+b <- function(x) c(x)
+c <- function(x) x
+
+a(f())
+```
+
+```
+##     ▆
+##  1. ├─global a(f())
+##  2. │ └─global b(x)
+##  3. │   └─global c(x)
+##  4. └─global f()
+##  5.   └─global g(x = 2)
+##  6.     └─global h(x = 3)
+##  7.       └─lobstr::cst()
+```
+
+## 7.5.3 Frames
+
+* frame (or evaluation context): element of a call stack
+
+  - an expression `expr` giving the function call
+  
+  - an environment `env` which is the execution environment of a function
+  
+  - a parent
+
+## 7.5.4 Dynamic scope
+
+* dynamic scoping: looking up variables in the calling stack rather than in the enclosing
+environment
+
+## 7.5.5 Exercises
+
+1. Write a function that lists all the variables defined in the environment
+in which it was called. It should return the same results as `ls()`.
+
+
+```r
+ls_env <- function(env = caller_env()) {
+    env_names(env)
+}
+
+e4a <- env(empty_env(), a = 1, b = 2)
+e4a
+```
+
+```
+## <environment: 0x00000279aecf2540>
+```
+
+```r
+e4b <- env(e4a, x = 10, a = 11)
+e4b
+```
+
+```
+## <environment: 0x00000279ae2e4470>
+```
+
+```r
+ls_env(e4a)
+```
+
+```
+## [1] "a" "b"
+```
 
 
 
