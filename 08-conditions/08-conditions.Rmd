@@ -165,7 +165,7 @@ suppressWarnings({
 
 # 8.4 Handling conditions
 
-* handlers can temporarily ovrride or supplement default behaviors of conditions
+* handlers can temporarily override or supplement default behaviors of conditions
 
 ```{r, eval = FALSE}
 tryCatch(
@@ -399,11 +399,13 @@ show_condition <- function(code) {
 show_condition(stop("!")) # error
 show_condition(10) # no matches, NULL
 show_condition(warning("?!")) # warning
+
 show_condition({ # message
   10
   message("?") # stops here
   warning("?!")
 })
+
 show_condition({ # warning 
   10
   warning("?") # stops here
@@ -446,6 +448,15 @@ catch_cnd <- function(expr, classes = "condition") {
   ))
 }
 ```
+
+
+
+
+
+
+
+
+
 
 5. How could you rewrite `show_condition()` to use a single handler?
 
@@ -497,6 +508,492 @@ show_condition_q5({ # message
   warning("?!")
 })
 ```
+
+# 8.5 Custom conditions
+
+```{r, eval = FALSE}
+# general pattern for creating custom conditions
+abort(
+  "error_not_found",
+  message = "Path `blah.csv` not found", 
+  path = "blah.csv"
+)
+```
+
+## 8.5.1 Motivation
+
+```{r, eval = FALSE}
+my_log <- function(x, base = exp(1)) {
+  if (!is.numeric(x)) {
+    abort(paste0(
+      "`x` must be a numeric vector; not ", typeof(x), "."
+    ))
+  }
+  if (!is.numeric(base)) {
+    abort(paste0(
+      "`base` must be a numeric vector; not ", typeof(base), "."
+    ))
+  }
+
+  base::log(x, base = base)
+}
+
+my_log(letters)
+my_log(1:10, base = letters)
+```
+
+## 8.5.2 Signaling
+
+```{r}
+abort_bad_argument <- function(arg, must, not = NULL) {
+  msg <- glue::glue("`{arg}` must {must}")
+  if (!is.null(not)) {
+    not <- typeof(not)
+    msg <- glue::glue("{msg}; not {not}.")
+  }
+  
+  abort("error_bad_argument", 
+    message = msg, 
+    arg = arg, 
+    must = must, 
+    not = not
+  )
+}
+```
+
+```{r}
+# custom error without dependency on rlang
+stop_custom <- function(.subclass, message, call = NULL, ...) {
+  err <- structure(
+    list(
+      message = message,
+      call = call,
+      ...
+    ),
+    class = c(.subclass, "error", "condition")
+  )
+  stop(err)
+}
+
+err <- catch_cnd(
+  stop_custom("error_new", "This is a custom error", x = 10)
+)
+class(err)
+err$x
+```
+
+```{r, eval = FALSE}
+my_log <- function(x, base = exp(1)) {
+  if (!is.numeric(x)) {
+    abort_bad_argument("x", must = "be numeric", not = x)
+  }
+  if (!is.numeric(base)) {
+    abort_bad_argument("base", must = "be numeric", not = base)
+  }
+
+  base::log(x, base = base)
+}
+
+my_log(letters)
+my_log(1:10, base = letters)
+```
+
+## 8.5.3 Handling
+
+```{r, eval = FALSE}
+library(testthat)
+
+err <- catch_cnd(my_log("a"))
+
+attributes(err)
+expect_s3_class(err, "error_bad_argument")
+
+err$arg
+expect_equal(err$arg, "x")
+
+err$not
+expect_equal(err$not, "character")
+```
+
+```{r}
+# use tryCatch to handle specific error by class, put most specific handlers first
+tryCatch(
+  error_bad_argument = function(cnd) "bad_argument",
+  error = function(cnd) "other error",
+  my_log("a")
+)
+```
+
+## 8.5.4 Exercises
+
+1. Inside a package, it's occasionally useful to check that a package is installed before
+using it. Write a function that checks if a package is installed (with 
+`requireNamespace("pkg", quietly = FALSE)`) and if not, throws a custom condition that
+includes the package name in the metadata.)
+
+```{r, eval = FALSE}
+check_package_installed <- function(package) {
+    #is_installed <- requireNamespace(package, quietly = FALSE)
+    
+    if(!is.character(package)) {
+        abort(
+            "bad_argument",
+            message = paste0("`package` must be a character vector; not ", typeof(package), ".")
+            )
+    }
+    if(!requireNamespace(package, quietly = FALSE)) {
+        abort(
+            "package_not_found",
+            message = paste0(package, " is not installed. Install with `install.packages(", package, ")`."),
+            package = package
+            )
+    }
+    
+    on.exit(unloadNamespace(package))
+    cat(paste0(package, " is installed."))
+}
+# not super happy with this solution. requireNamespace will load in the package
+# if it is installed and would rather just have a means to check if it is
+# installed without loading it in
+# and yes i know you can supress the message from requireNamespace by setting
+# quietly = TRUE but I'm working within the parameters of the question relax
+
+check_package_installed("ggplot2")
+check_package_installed("ggplot")
+check_package_installed(10)
+```
+
+2. Inside a package you often need to stop an error when something is not right.
+Other packages that depend on your package might be tempted to check these errors
+in their unit tests. How could you help these packages to avoid relying on the
+error message which is part of the user interface rather than the API and might
+change without notice?
+
+
+# 8.6 Applications
+
+## 8.6.1 Failure value
+
+```{r}
+fail_with <- function(expr, value = NULL) {
+  tryCatch(
+    error = function(cnd) value,
+    return(expr) # return default value
+  )
+}
+
+fail_with(log(10), NA_real_)
+fail_with(log("x"), NA_real_)
+```
+
+```{r}
+# watered-down version of base::try()
+try2 <- function(expr, silent = FALSE) {
+  tryCatch(
+    error = function(cnd) {
+      msg <- conditionMessage(cnd)
+      if (!silent) {
+        message("Error: ", msg)
+      }
+      structure(msg, class = "try-error")
+    },
+    expr
+  )
+}
+
+try2(1)
+try2(stop("Hi"))
+try2(stop("Hi"), silent = TRUE)
+```
+
+## 8.6.2 Success and failure values
+
+```{r}
+foo <- function(expr) {
+  tryCatch(
+    error = function(cnd) error_val, # return error_val if code fails
+    {
+      expr
+      success_val # return success_val if code is successful
+    }
+  )
+}
+```
+
+```{r}
+does_error <- function(expr) {
+  tryCatch(
+    error = function(cnd) TRUE,
+    {
+      expr
+      FALSE
+    }
+  )
+}
+```
+
+```{r}
+catch_cnd <- function(expr) {
+  tryCatch(
+    condition = function(cnd) cnd, 
+    {
+      expr
+      NULL
+    }
+  )
+}
+```
+
+```{r}
+# return result and error to determine if code succeeded or failed
+safety <- function(expr) {
+  tryCatch(
+    error = function(cnd) {
+      list(result = NULL, error = cnd)
+    },
+    list(result = expr, error = NULL)
+  )
+}
+
+str(safety(1 + 10))
+str(safety(stop("Error!")))
+```
+
+## 8.6.3 Resignal
+
+```{r}
+warning2error <- function(expr) {
+  withCallingHandlers(
+    warning = function(cnd) abort(conditionMessage(cnd)), # throw an error when handling a warning
+    expr
+  )
+}
+```
+
+```{r, eval = FALSE}
+warning2error({
+  x <- 2 ^ 4
+  warn("Hello")
+})
+```
+
+## 8.6.4 Record
+
+```{r, eval = FALSE}
+catch_cnds <- function(expr) {
+  conds <- list() # init output object
+  add_cond <- function(cnd) {
+    conds <<- append(conds, list(cnd)) # append
+    cnd_muffle(cnd)
+  }
+  
+  withCallingHandlers(
+    message = add_cond,
+    warning = add_cond,
+    expr
+  )
+  
+  conds # return output object
+}
+
+catch_cnds({
+  inform("a")
+  warn("b")
+  inform("c")
+})
+```
+
+```{r, eval = FALSE}
+catch_cnds <- function(expr) {
+  conds <- list()
+  add_cond <- function(cnd) {
+    conds <<- append(conds, list(cnd))
+    cnd_muffle(cnd)
+  }
+  
+  tryCatch( # also capture errors
+    error = function(cnd) {
+      conds <<- append(conds, list(cnd))
+    },
+    withCallingHandlers(
+      message = add_cond,
+      warning = add_cond,
+      expr
+    )
+  )
+  
+  conds
+}
+
+catch_cnds({
+  inform("a")
+  warn("b")
+  abort("C")
+})
+```
+
+## 8.6.5 No default behavior
+
+```{r}
+log <- function(message, level = c("info", "error", "fatal")) {
+  level <- match.arg(level)
+  signal(message, "log", level = level) # no default handler
+}
+
+log("This code was run") # condition was signaled but no output
+```
+
+```{r}
+# recods all logging messages into a file
+record_log <- function(expr, path = stdout()) {
+  withCallingHandlers(
+    log = function(cnd) {
+      cat(
+        "[", cnd$level, "] ", cnd$message, "\n", sep = "",
+        file = path, append = TRUE
+      )
+    },
+    expr
+  )
+}
+
+record_log(log("Hello"))
+```
+
+```{r}
+ignore_log_levels <- function(expr, levels) {
+  withCallingHandlers(
+    log = function(cnd) {
+      if (cnd$level %in% levels) {
+        cnd_muffle(cnd)
+      }
+    },
+    expr
+  )
+}
+
+record_log(ignore_log_levels(log("Hello"), "info")) # ignore "info" logging level
+```
+
+## 8.6.6 Exercises
+
+1. Create `suppressConditions()` that works like `suppressMessages()` and
+`suppressWarnings()` but suppresses everything. Think carefully about how you
+should handle errors.
+
+From `suppressMessages` and `suppressWarnings`:
+
+```
+# suppressMessages
+function (expr, classes = "message") 
+withCallingHandlers(expr, message = function(c) if (inherits(c, 
+    classes)) tryInvokeRestart("muffleMessage"))
+<bytecode: 0x0000018b81eabc10>
+<environment: namespace:base>
+
+# suppressWarnings
+function (expr, classes = "warning") 
+{
+    withCallingHandlers(expr, warning = function(w) if (inherits(w, 
+        classes)) 
+        tryInvokeRestart("muffleWarning"))
+}
+<bytecode: 0x0000018b81ea9a08>
+<environment: namespace:base>
+```
+
+```{r}
+suppressConditions <- function(expr) { # no need to define classes argument
+    tryCatch(
+        # what to do with errors?
+        # inspo from 8.6.1 and https://stackoverflow.com/questions/19111956/suppress-error-message-in-r
+        error = function(cnd) try(expr, silent = TRUE),
+        condition = function(cnd) {
+            # check if cnd is a message or warning
+            if (inherits(cnd, "message")) {
+                tryInvokeRestart("muffleMessage")
+            } else if (inherits(cnd, "warning")) {
+                tryInvokeRestart("muffleWarning")
+            }
+        },
+        expr
+    )
+}
+```
+
+```{r}
+suppressConditions(stop("Hi"))
+suppressConditions(log10("a"))
+suppressConditions(message("Hi"))
+
+suppressConditions(log10(10))
+```
+
+2. Compare the following two implementations of `message2error()`. What is the main
+advantage of `withCallingHanlders()` in this scenario? (Hint: look carefully at the
+traceback.)
+
+```{r}
+message2error_1 <- function(code) {
+  withCallingHandlers(code, message = function(e) stop(e))
+}
+message2error_2 <- function(code) {
+  tryCatch(code, message = function(e) stop(e))
+}
+```
+
+```{r, eval = FALSE}
+message2error_1(message("a"))
+traceback()
+
+message2error_1(stop("a"))
+traceback()
+```
+
+```{r, FALSE}
+message2error_2(message("a"))
+traceback()
+
+message2error_2(stop("a"))
+traceback()
+```
+
+3. How would you modify the `catch_cnds()` definition if you wanted to recreate the original
+intermingling of warnings and messages?
+
+See 8.6.4
+
+4. Why is catching interrupts dangerous? Run this code to find out.
+
+Imagine purposely destroying your emergency brakes. Yeah don't do that lol
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
