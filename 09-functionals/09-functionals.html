@@ -570,15 +570,15 @@ out.</li>
 <pre class="r"><code>as_mapper(1)</code></pre>
 <pre><code>## function (x, ...) 
 ## pluck_raw(x, list(1), .default = NULL)
-## &lt;environment: 0x0000013fd67433e0&gt;</code></pre>
+## &lt;environment: 0x000001d3be4167c0&gt;</code></pre>
 <pre class="r"><code>as_mapper(&quot;a&quot;)</code></pre>
 <pre><code>## function (x, ...) 
 ## pluck_raw(x, list(&quot;a&quot;), .default = NULL)
-## &lt;environment: 0x0000013fd690cb50&gt;</code></pre>
+## &lt;environment: 0x000001d3be59eb80&gt;</code></pre>
 <pre class="r"><code>as_mapper(list(1, &quot;a&quot;))</code></pre>
 <pre><code>## function (x, ...) 
 ## pluck_raw(x, list(1, &quot;a&quot;), .default = NULL)
-## &lt;environment: 0x0000013fd6a92b98&gt;</code></pre>
+## &lt;environment: 0x000001d3be746b98&gt;</code></pre>
 <p>If the input is a character vector, numeric vector, or list, it is
 converted to an extractor function in <code>purrr::pluck()</code>.</p>
 <ol start="2" style="list-style-type: decimal">
@@ -617,24 +617,22 @@ BUT why are vector values returned?</p>
 <pre class="r"><code>as_mapper(runif(2))</code></pre>
 <pre><code>## function (x, ...) 
 ## pluck_raw(x, list(0.612843240844086, 0.0950499763712287), .default = NULL)
-## &lt;environment: 0x0000013fd7235fe0&gt;</code></pre>
+## &lt;environment: 0x000001d3ba361eb8&gt;</code></pre>
 <pre class="r"><code>v &lt;- 1:3
 rand &lt;- as.list(runif(2)) # rand will always be a double &lt; 1
 
 # from as_mapper(runif(2)) output, I would expect two values to be output since
 # runif(2) will generate two random values
 # also pluck() behavior
-pluck(v[1], rand[[1]], .default = NULL)</code></pre>
-<pre><code>## [1] 1</code></pre>
-<pre class="r"><code>pluck(v[1], rand[[2]], .default = NULL)</code></pre>
-<pre><code>## [1] 1</code></pre>
-<pre class="r"><code># input and output vectors must have same dimensions and indices &lt; 1 are treated as 1 as opposed to regular vector behavior
+pluck(v[1], rand[[1]], .default = NULL)
+pluck(v[1], rand[[2]], .default = NULL)
+# input and output vectors must have same dimensions and indices &lt; 1 are treated as 1 as opposed to regular vector behavior
 # returning empty vectors
 
-v[rand[[1]]]</code></pre>
-<pre><code>## integer(0)</code></pre>
-<pre class="r"><code># but executing pluck() verbosely from as_mapper() throws an error since v[1] and rand dims are not equal
-#pluck(v[1], rand, .default = NULL)
+v[rand[[1]]]
+
+# but executing pluck() verbosely from as_mapper() throws an error since v[1] and rand dims are not equal
+pluck(v[1], rand, .default = NULL)
 #pluck(v, rand, .default = NULL)
 
 # also pluck_raw() doesn&#39;t exist, probably a C wrapper idk</code></pre>
@@ -693,7 +691,7 @@ p_vals &lt;- map_dbl(trials, &quot;p.value&quot;)
 
 boxplot(p_vals, col = &quot;white&quot;, horizontal = T)
 stripchart(p_vals, method = &quot;jitter&quot;, pch = 19, add = TRUE)</code></pre>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
 <ol start="5" style="list-style-type: decimal">
 <li>The following code uses a map nested inside another map to apply a
 function to every element of a nested list. Why does it fail, and what
@@ -1050,6 +1048,397 @@ map2(cyls, paths, write.csv)</code></pre>
 ## 
 ## $`8`
 ## NULL</code></pre>
+</div>
+</div>
+<div id="reduce-family" class="section level1">
+<h1>9.5 Reduce family</h1>
+<div id="basics" class="section level2">
+<h2>9.5.1 Basics</h2>
+<ul>
+<li><code>reduce(1:4, f)</code> equivalent to
+<code>f(f(f(1, 2), 3), 4)</code>, useful for sequential function
+calls</li>
+</ul>
+<pre class="r"><code>l &lt;- map(1:4, ~ sample(1:10, 15, replace = T))
+str(l)</code></pre>
+<pre><code>## List of 4
+##  $ : int [1:15] 9 4 10 4 5 10 4 7 8 2 ...
+##  $ : int [1:15] 8 9 4 10 6 2 5 4 1 6 ...
+##  $ : int [1:15] 6 8 7 4 3 5 2 5 5 3 ...
+##  $ : int [1:15] 10 7 1 9 8 6 6 3 10 1 ...</code></pre>
+<pre class="r"><code>out &lt;- l[[1]]
+out &lt;- intersect(out, l[[2]])
+out &lt;- intersect(out, l[[3]])
+out &lt;- intersect(out, l[[4]])
+out</code></pre>
+<pre><code>## [1] 10  8  2</code></pre>
+<pre class="r"><code># instead use reduce
+reduce(l, intersect)</code></pre>
+<pre><code>## [1] 10  8  2</code></pre>
+<pre class="r"><code>reduce(l, union)</code></pre>
+<pre><code>##  [1]  9  4 10  5  7  8  2  1  6  3</code></pre>
+</div>
+<div id="accumulate" class="section level2">
+<h2>9.5.2 Accumulate</h2>
+<ul>
+<li><code>accumulate()</code> returns intermediary results also</li>
+</ul>
+<pre class="r"><code>accumulate(l, intersect)</code></pre>
+<pre><code>## [[1]]
+##  [1]  9  4 10  4  5 10  4  7  8  2  1  5 10  9  5
+## 
+## [[2]]
+## [1]  9  4 10  5  8  2  1
+## 
+## [[3]]
+## [1]  4 10  5  8  2
+## 
+## [[4]]
+## [1] 10  8  2</code></pre>
+<pre class="r"><code>x &lt;- c(4, 3, 10)
+reduce(x, `+`)</code></pre>
+<pre><code>## [1] 17</code></pre>
+<pre class="r"><code>accumulate(x, `+`)</code></pre>
+<pre><code>## [1]  4  7 17</code></pre>
+</div>
+<div id="output-types" class="section level2">
+<h2>9.5.3 Output types</h2>
+<ul>
+<li><code>.init</code> arg in <code>reduce()</code> defines initial
+value to start accumualtion; also helpful to ensure valid input/output
+types</li>
+</ul>
+<pre class="r"><code>reduce(integer(), `+`, .init = 0)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>#reduce(&quot;a&quot;, `+`, .init = 0)</code></pre>
+</div>
+<div id="multiple-inputs" class="section level2">
+<h2>9.5.4 Multiple inputs</h2>
+<ul>
+<li><p><code>reduce2(.x, .y, f, .init)</code></p></li>
+<li><p><span class="math inline">\(|.y|\)</span> must be <span class="math inline">\(|.x| - 1\)</span> if <code>.init</code> is not
+specified; if <code>.init</code> is supplied, both magnitudes can be the
+equal</p></li>
+</ul>
+</div>
+<div id="map-reduce" class="section level2">
+<h2>9.5.5 Map-reduce</h2>
+<ul>
+<li>map-reduce: map combined with reduce split between computers, divide
+and conquer</li>
+</ul>
+</div>
+</div>
+<div id="predicate-functionals" class="section level1">
+<h1>9.6 Predicate functionals</h1>
+<ul>
+<li>predicate returns T/F</li>
+</ul>
+<div id="basics-1" class="section level2">
+<h2>9.6.1 Basics</h2>
+<ul>
+<li><p>predicate functional applies predicate to each element of a
+vector</p></li>
+<li><p><code>some(.x, .p)</code> returns T if ANY element
+matches</p></li>
+<li><p><code>every(.x, .p)</code> returns T if ALL elements
+match</p></li>
+<li><p><code>none(.x, .p)</code> returns T if NO element
+matches</p></li>
+<li><p><code>detect(.x, .p)</code> returns the value of the first match;
+<code>detect_index(.x, .p)</code> returns index of first match</p></li>
+<li><p><code>keep(.x, .p)</code> keeps all matching elements;
+<code>discard(.x, .p)</code> drops all matching elements</p></li>
+</ul>
+</div>
+<div id="map-variants-1" class="section level2">
+<h2>9.6.2 Map variants</h2>
+<pre class="r"><code>df &lt;- data.frame(
+  num1 = c(0, 10, 20),
+  num2 = c(5, 6, 7),
+  chr1 = c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;),
+  stringsAsFactors = FALSE
+)
+
+str(map_if(df, is.numeric, mean))</code></pre>
+<pre><code>## List of 3
+##  $ num1: num 10
+##  $ num2: num 6
+##  $ chr1: chr [1:3] &quot;a&quot; &quot;b&quot; &quot;c&quot;</code></pre>
+<pre class="r"><code>str(modify_if(df, is.numeric, mean))</code></pre>
+<pre><code>## &#39;data.frame&#39;:    3 obs. of  3 variables:
+##  $ num1: num  10 10 10
+##  $ num2: num  6 6 6
+##  $ chr1: chr  &quot;a&quot; &quot;b&quot; &quot;c&quot;</code></pre>
+<pre class="r"><code>str(map(keep(df, is.numeric), mean))</code></pre>
+<pre><code>## List of 2
+##  $ num1: num 10
+##  $ num2: num 6</code></pre>
+</div>
+<div id="exercises-2" class="section level2">
+<h2>9.6.3 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Why isn’t <code>is.na()</code> a predicate function? What base
+function is closest to being a predicate version of
+<code>is.na()</code>?</li>
+</ol>
+<p><code>is.na()</code> is not a predicate function because the test is
+applied to the entire vector and returns a logical vector.
+<code>anyNA()</code> returns one T/F value.</p>
+<ol start="2" style="list-style-type: decimal">
+<li><code>simple_reduce()</code> has a problem when <code>x</code> is
+length 0 or 1. Describe the source of the problem and how you might go
+about fixing it.</li>
+</ol>
+<pre class="r"><code>simple_reduce &lt;- function(x, f) {
+  out &lt;- x[[1]]
+  for (i in seq(2, length(x))) {
+    out &lt;- f(out, x[[i]])
+  }
+  out
+}</code></pre>
+<pre class="r"><code>simple_reduce &lt;- function(x, f) {
+  if (length(x) == 0) {
+    stop(&quot;Error: `.x` is empty.&quot;)
+  } 
+  else if (length(x) == 1) {
+    return(x)
+  }
+  else {
+    out &lt;- x[[1]]
+    for (i in seq(2, length(x))) {
+      out &lt;- f(out, x[[i]])
+    }
+    return(out)
+  }
+}</code></pre>
+<pre class="r"><code>x &lt;- c(1, 2, 3)
+simple_reduce(x, `+`)</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="r"><code>simple_reduce(1, `+`)</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>simple_reduce(&quot;a&quot;, `+`)</code></pre>
+<pre><code>## [1] &quot;a&quot;</code></pre>
+<pre class="r"><code>#simple_reduce(integer(), `+`)</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>Implement the <code>span()</code> function from Haskell: given a
+list <code>x</code> and a predicate function <code>f</code>,
+<code>span(x, f)</code> returns the location of the longest sequential
+run of elements where the predicate is true. (Hint: you might find
+<code>rle()</code> helpful.)</li>
+</ol>
+<pre class="r"><code>test &lt;- list(
+  c(999, 0, 0, 0, 999, 999),
+  c(0, 0, 0, 999, 999, 999, 0, 999),
+  c(999, 999, 0, 0, 0, 0, 0, 0, 0)
+)
+
+test_2max &lt;- list(
+  c(999, 0, 0, 0, 999, 999),
+  c(0, 0, 0, 999, 999, 0, 999),
+  c(999, 999)
+)
+
+is_zero &lt;- function(value) {
+  value == 0
+}
+
+
+
+runs &lt;- map(test, is_zero) %&gt;% map(rle)
+runs</code></pre>
+<pre><code>## [[1]]
+## Run Length Encoding
+##   lengths: int [1:3] 1 3 2
+##   values : logi [1:3] FALSE TRUE FALSE
+## 
+## [[2]]
+## Run Length Encoding
+##   lengths: int [1:4] 3 3 1 1
+##   values : logi [1:4] TRUE FALSE TRUE FALSE
+## 
+## [[3]]
+## Run Length Encoding
+##   lengths: int [1:2] 2 7
+##   values : logi [1:2] FALSE TRUE</code></pre>
+<pre class="r"><code># split runs into lengths and values
+length &lt;- runs %&gt;% map(&quot;lengths&quot;)
+value &lt;- runs %&gt;% map(&quot;values&quot;)
+
+length</code></pre>
+<pre><code>## [[1]]
+## [1] 1 3 2
+## 
+## [[2]]
+## [1] 3 3 1 1
+## 
+## [[3]]
+## [1] 2 7</code></pre>
+<pre class="r"><code>value</code></pre>
+<pre><code>## [[1]]
+## [1] FALSE  TRUE FALSE
+## 
+## [[2]]
+## [1]  TRUE FALSE  TRUE FALSE
+## 
+## [[3]]
+## [1] FALSE  TRUE</code></pre>
+<pre class="r"><code>#map(length, ~ which(.x == max(.x))) # returns index of longest runs but cannot differentiate between T/F values
+
+# take advantage of map2
+map2(length, value, ~ which(.x == max(.x) &amp; .y == TRUE))</code></pre>
+<pre><code>## [[1]]
+## [1] 2
+## 
+## [[2]]
+## [1] 1
+## 
+## [[3]]
+## [1] 2</code></pre>
+<pre class="r"><code># finds longest runs in each vector but not overall list
+
+#map(length, max) %&gt;% unlist</code></pre>
+<ol start="4" style="list-style-type: decimal">
+<li>Implement <code>arg_max()</code>. It should take a function and a
+vector of inputs, and return the elements of the input where the
+function returns the highest value. For example,
+<code>arg_max(-10:5, function(x) x ^ 2)</code> should return -10.
+<code>arg_max(-5:5, function(x) x ^ 2)</code> should return
+<code>c(-5, 5)</code>. Also implement the matching
+<code>arg_min()</code> function.</li>
+</ol>
+<pre class="r"><code>arg_max &lt;- function(vect, f) {
+  values &lt;- f(vect)
+  
+  # from values, determine index of max number
+  max_index &lt;- which(values == max(values))
+  
+  return(vect[max_index])
+}
+
+arg_max(-5:5, function(x) x ^ 2)</code></pre>
+<pre><code>## [1] -5  5</code></pre>
+<pre class="r"><code>arg_max &lt;- function(vect, f) {
+  values &lt;- f(vect)
+  
+  max_index &lt;- which(values == min(values))
+  
+  return(vect[max_index])
+}
+
+arg_max(-5:5, function(x) x ^ 2)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<ol start="5" style="list-style-type: decimal">
+<li>The function below scales a vector so it falls in the range [0, 1].
+How would you apply it to every column of a data frame? How would you
+apply it to every numeric column in a data frame?</li>
+</ol>
+<pre class="r"><code>scale01 &lt;- function(x) {
+  rng &lt;- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+df &lt;- data.frame(x = 1:3,
+                 y = c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;),
+                 z = 4:6,
+                 a = c(T, F, F))
+
+map_if(df, is.numeric, scale01)</code></pre>
+<pre><code>## $x
+## [1] 0.0 0.5 1.0
+## 
+## $y
+## [1] &quot;a&quot; &quot;b&quot; &quot;c&quot;
+## 
+## $z
+## [1] 0.0 0.5 1.0
+## 
+## $a
+## [1]  TRUE FALSE FALSE</code></pre>
+</div>
+</div>
+<div id="base-functionals" class="section level1">
+<h1>9.7 Base functionals</h1>
+<div id="matrices-and-arrays" class="section level2">
+<h2>9.7.1 Matrices and arrays</h2>
+<ul>
+<li><code>base::apply()</code> to work with two-dimensional and higher
+vectors while <code>map()</code> works best with 1D vectors</li>
+</ul>
+<pre class="r"><code>a2d &lt;- matrix(1:20, nrow = 5)
+apply(a2d, 1, mean)</code></pre>
+<pre><code>## [1]  8.5  9.5 10.5 11.5 12.5</code></pre>
+<pre class="r"><code>apply(a2d, 2, mean)</code></pre>
+<pre><code>## [1]  3  8 13 18</code></pre>
+<pre class="r"><code>a3d &lt;- array(1:24, c(2, 3, 4))
+apply(a3d, 1, mean)</code></pre>
+<pre><code>## [1] 12 13</code></pre>
+<pre class="r"><code>apply(a3d, c(1, 2), mean)</code></pre>
+<pre><code>##      [,1] [,2] [,3]
+## [1,]   10   12   14
+## [2,]   11   13   15</code></pre>
+<ul>
+<li>caveats of using <code>apply()</code>: no control of output type,
+not idempotent (output not always same of input)</li>
+</ul>
+</div>
+<div id="mathematical-concerns" class="section level2">
+<h2>9.7.2 Mathematical concerns</h2>
+<ul>
+<li><p><code>integrate()</code> finds the area under the curve defined
+by <code>f()</code></p></li>
+<li><p><code>uniroot()</code> finds where <code>f()</code> hits
+zero</p></li>
+<li><p><code>optimize()</code> finds the location of the lowest (or
+highest) value of <code>f()</code></p></li>
+</ul>
+<pre class="r"><code>integrate(sin, 0, pi)</code></pre>
+<pre><code>## 2 with absolute error &lt; 2.2e-14</code></pre>
+<pre class="r"><code>str(uniroot(sin, pi * c(1 / 2, 3 / 2)))</code></pre>
+<pre><code>## List of 5
+##  $ root      : num 3.14
+##  $ f.root    : num 1.22e-16
+##  $ iter      : int 2
+##  $ init.it   : int NA
+##  $ estim.prec: num 6.1e-05</code></pre>
+<pre class="r"><code>str(optimise(sin, c(0, 2 * pi)))</code></pre>
+<pre><code>## List of 2
+##  $ minimum  : num 4.71
+##  $ objective: num -1</code></pre>
+<pre class="r"><code>str(optimise(sin, c(0, pi), maximum = TRUE))</code></pre>
+<pre><code>## List of 2
+##  $ maximum  : num 1.57
+##  $ objective: num 1</code></pre>
+</div>
+<div id="exercises-3" class="section level2">
+<h2>9.7.3 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>How does <code>apply()</code> arrange the output? Read the
+documentation and perform some experiments.</li>
+</ol>
+<pre class="r"><code>a2d &lt;- matrix(1:20, nrow = 5)
+a2d</code></pre>
+<pre><code>##      [,1] [,2] [,3] [,4]
+## [1,]    1    6   11   16
+## [2,]    2    7   12   17
+## [3,]    3    8   13   18
+## [4,]    4    9   14   19
+## [5,]    5   10   15   20</code></pre>
+<pre class="r"><code>apply(a2d, 1, mean)</code></pre>
+<pre><code>## [1]  8.5  9.5 10.5 11.5 12.5</code></pre>
+<pre class="r"><code>apply(a2d, 2, mean)</code></pre>
+<pre><code>## [1]  3  8 13 18</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>What do <code>eapply()</code> and <code>rapply()</code> do? Does
+purrr have equivalents?</li>
+</ol>
+<p><code>eapply()</code> applies a function over values in an
+environment. <code>rapply()</code> recursively applies a function over a
+list.</p>
+<ol start="3" style="list-style-type: decimal">
+<li>Challenge: read about the fixed point algorithm. Complete the
+exercises using R.</li>
+</ol>
 </div>
 </div>
 

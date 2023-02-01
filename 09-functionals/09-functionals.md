@@ -384,7 +384,7 @@ as_mapper(1)
 ```
 ## function (x, ...) 
 ## pluck_raw(x, list(1), .default = NULL)
-## <environment: 0x0000013fd67433e0>
+## <environment: 0x000001d3be4167c0>
 ```
 
 
@@ -395,7 +395,7 @@ as_mapper("a")
 ```
 ## function (x, ...) 
 ## pluck_raw(x, list("a"), .default = NULL)
-## <environment: 0x0000013fd690cb50>
+## <environment: 0x000001d3be59eb80>
 ```
 
 
@@ -406,7 +406,7 @@ as_mapper(list(1, "a"))
 ```
 ## function (x, ...) 
 ## pluck_raw(x, list(1, "a"), .default = NULL)
-## <environment: 0x0000013fd6a92b98>
+## <environment: 0x000001d3be746b98>
 ```
 
 If the input is a character vector, numeric vector, or list, it is converted to an
@@ -476,7 +476,7 @@ as_mapper(runif(2))
 ```
 ## function (x, ...) 
 ## pluck_raw(x, list(0.612843240844086, 0.0950499763712287), .default = NULL)
-## <environment: 0x0000013fd7235fe0>
+## <environment: 0x000001d3ba361eb8>
 ```
 
 
@@ -488,34 +488,14 @@ rand <- as.list(runif(2)) # rand will always be a double < 1
 # runif(2) will generate two random values
 # also pluck() behavior
 pluck(v[1], rand[[1]], .default = NULL)
-```
-
-```
-## [1] 1
-```
-
-```r
 pluck(v[1], rand[[2]], .default = NULL)
-```
-
-```
-## [1] 1
-```
-
-```r
 # input and output vectors must have same dimensions and indices < 1 are treated as 1 as opposed to regular vector behavior
 # returning empty vectors
 
 v[rand[[1]]]
-```
 
-```
-## integer(0)
-```
-
-```r
 # but executing pluck() verbosely from as_mapper() throws an error since v[1] and rand dims are not equal
-#pluck(v[1], rand, .default = NULL)
+pluck(v[1], rand, .default = NULL)
 #pluck(v, rand, .default = NULL)
 
 # also pluck_raw() doesn't exist, probably a C wrapper idk
@@ -1091,12 +1071,580 @@ map2(cyls, paths, write.csv)
 ## NULL
 ```
 
+# 9.5 Reduce family
+
+## 9.5.1 Basics
+
+* `reduce(1:4, f)` equivalent to `f(f(f(1, 2), 3), 4)`, useful for sequential function calls
+
+
+```r
+l <- map(1:4, ~ sample(1:10, 15, replace = T))
+str(l)
+```
+
+```
+## List of 4
+##  $ : int [1:15] 9 4 10 4 5 10 4 7 8 2 ...
+##  $ : int [1:15] 8 9 4 10 6 2 5 4 1 6 ...
+##  $ : int [1:15] 6 8 7 4 3 5 2 5 5 3 ...
+##  $ : int [1:15] 10 7 1 9 8 6 6 3 10 1 ...
+```
+
+
+```r
+out <- l[[1]]
+out <- intersect(out, l[[2]])
+out <- intersect(out, l[[3]])
+out <- intersect(out, l[[4]])
+out
+```
+
+```
+## [1] 10  8  2
+```
+
+
+```r
+# instead use reduce
+reduce(l, intersect)
+```
+
+```
+## [1] 10  8  2
+```
+
+
+```r
+reduce(l, union)
+```
+
+```
+##  [1]  9  4 10  5  7  8  2  1  6  3
+```
+
+## 9.5.2 Accumulate
+
+* `accumulate()` returns intermediary results also
+
+
+```r
+accumulate(l, intersect)
+```
+
+```
+## [[1]]
+##  [1]  9  4 10  4  5 10  4  7  8  2  1  5 10  9  5
+## 
+## [[2]]
+## [1]  9  4 10  5  8  2  1
+## 
+## [[3]]
+## [1]  4 10  5  8  2
+## 
+## [[4]]
+## [1] 10  8  2
+```
+
+
+```r
+x <- c(4, 3, 10)
+reduce(x, `+`)
+```
+
+```
+## [1] 17
+```
+
+```r
+accumulate(x, `+`)
+```
+
+```
+## [1]  4  7 17
+```
+
+## 9.5.3 Output types
+
+* `.init` arg in `reduce()` defines initial value to start accumualtion; also helpful
+to ensure valid input/output types
+
+
+```r
+reduce(integer(), `+`, .init = 0)
+```
+
+```
+## [1] 0
+```
+
+```r
+#reduce("a", `+`, .init = 0)
+```
+
+## 9.5.4 Multiple inputs
+
+* `reduce2(.x, .y, f, .init)`
+
+* $|.y|$ must be $|.x| - 1$ if `.init` is not specified; if `.init` is supplied,
+both magnitudes can be the equal
+
+## 9.5.5 Map-reduce
+
+* map-reduce: map combined with reduce split between computers, divide and conquer
+
+# 9.6 Predicate functionals
+
+* predicate returns T/F
+
+## 9.6.1 Basics
+
+* predicate functional applies predicate to each element of a vector
+
+* `some(.x, .p)` returns T if ANY element matches
+
+* `every(.x, .p)` returns T if ALL elements match
+
+* `none(.x, .p)` returns T if NO element matches
+
+* `detect(.x, .p)` returns the value of the first match; `detect_index(.x, .p)` returns
+index of first match
+
+* `keep(.x, .p)` keeps all matching elements; `discard(.x, .p)` drops all matching
+elements
+
+## 9.6.2 Map variants
+
+
+```r
+df <- data.frame(
+  num1 = c(0, 10, 20),
+  num2 = c(5, 6, 7),
+  chr1 = c("a", "b", "c"),
+  stringsAsFactors = FALSE
+)
+
+str(map_if(df, is.numeric, mean))
+```
+
+```
+## List of 3
+##  $ num1: num 10
+##  $ num2: num 6
+##  $ chr1: chr [1:3] "a" "b" "c"
+```
+
+```r
+str(modify_if(df, is.numeric, mean))
+```
+
+```
+## 'data.frame':	3 obs. of  3 variables:
+##  $ num1: num  10 10 10
+##  $ num2: num  6 6 6
+##  $ chr1: chr  "a" "b" "c"
+```
+
+```r
+str(map(keep(df, is.numeric), mean))
+```
+
+```
+## List of 2
+##  $ num1: num 10
+##  $ num2: num 6
+```
+
+## 9.6.3 Exercises
+
+1. Why isn't `is.na()` a predicate function? What base function is closest to being a
+predicate version of `is.na()`?
+
+`is.na()` is not a predicate function because the test is applied to the entire vector and
+returns a logical vector. `anyNA()` returns one T/F value.
+
+2. `simple_reduce()` has a problem when `x` is length 0 or 1. Describe the source of the
+problem and how you might go about fixing it.
+
+
+```r
+simple_reduce <- function(x, f) {
+  out <- x[[1]]
+  for (i in seq(2, length(x))) {
+    out <- f(out, x[[i]])
+  }
+  out
+}
+```
+
+
+```r
+simple_reduce <- function(x, f) {
+  if (length(x) == 0) {
+    stop("Error: `.x` is empty.")
+  } 
+  else if (length(x) == 1) {
+    return(x)
+  }
+  else {
+    out <- x[[1]]
+    for (i in seq(2, length(x))) {
+      out <- f(out, x[[i]])
+    }
+    return(out)
+  }
+}
+```
+
+
+```r
+x <- c(1, 2, 3)
+simple_reduce(x, `+`)
+```
+
+```
+## [1] 6
+```
+
+```r
+simple_reduce(1, `+`)
+```
+
+```
+## [1] 1
+```
+
+```r
+simple_reduce("a", `+`)
+```
+
+```
+## [1] "a"
+```
+
+```r
+#simple_reduce(integer(), `+`)
+```
+
+3. Implement the `span()` function from Haskell: given a list `x` and a predicate
+function `f`, `span(x, f)` returns the location of the longest sequential run of
+elements where the predicate is true. (Hint: you might find `rle()` helpful.)
+
+
+```r
+test <- list(
+  c(999, 0, 0, 0, 999, 999),
+  c(0, 0, 0, 999, 999, 999, 0, 999),
+  c(999, 999, 0, 0, 0, 0, 0, 0, 0)
+)
+
+test_2max <- list(
+  c(999, 0, 0, 0, 999, 999),
+  c(0, 0, 0, 999, 999, 0, 999),
+  c(999, 999)
+)
+
+is_zero <- function(value) {
+  value == 0
+}
 
 
 
+runs <- map(test, is_zero) %>% map(rle)
+runs
+```
+
+```
+## [[1]]
+## Run Length Encoding
+##   lengths: int [1:3] 1 3 2
+##   values : logi [1:3] FALSE TRUE FALSE
+## 
+## [[2]]
+## Run Length Encoding
+##   lengths: int [1:4] 3 3 1 1
+##   values : logi [1:4] TRUE FALSE TRUE FALSE
+## 
+## [[3]]
+## Run Length Encoding
+##   lengths: int [1:2] 2 7
+##   values : logi [1:2] FALSE TRUE
+```
 
 
+```r
+# split runs into lengths and values
+length <- runs %>% map("lengths")
+value <- runs %>% map("values")
 
+length
+```
+
+```
+## [[1]]
+## [1] 1 3 2
+## 
+## [[2]]
+## [1] 3 3 1 1
+## 
+## [[3]]
+## [1] 2 7
+```
+
+```r
+value
+```
+
+```
+## [[1]]
+## [1] FALSE  TRUE FALSE
+## 
+## [[2]]
+## [1]  TRUE FALSE  TRUE FALSE
+## 
+## [[3]]
+## [1] FALSE  TRUE
+```
+
+
+```r
+#map(length, ~ which(.x == max(.x))) # returns index of longest runs but cannot differentiate between T/F values
+
+# take advantage of map2
+map2(length, value, ~ which(.x == max(.x) & .y == TRUE))
+```
+
+```
+## [[1]]
+## [1] 2
+## 
+## [[2]]
+## [1] 1
+## 
+## [[3]]
+## [1] 2
+```
+
+```r
+# finds longest runs in each vector but not overall list
+
+#map(length, max) %>% unlist
+```
+
+
+4. Implement `arg_max()`. It should take a function and a vector of inputs, and return
+the elements of the input where the function returns the highest value. For example,
+`arg_max(-10:5, function(x) x ^ 2)` should return -10. `arg_max(-5:5, function(x) x ^ 2)`
+should return `c(-5, 5)`. Also implement the matching `arg_min()` function.
+
+
+```r
+arg_max <- function(vect, f) {
+  values <- f(vect)
+  
+  # from values, determine index of max number
+  max_index <- which(values == max(values))
+  
+  return(vect[max_index])
+}
+
+arg_max(-5:5, function(x) x ^ 2)
+```
+
+```
+## [1] -5  5
+```
+
+
+```r
+arg_max <- function(vect, f) {
+  values <- f(vect)
+  
+  max_index <- which(values == min(values))
+  
+  return(vect[max_index])
+}
+
+arg_max(-5:5, function(x) x ^ 2)
+```
+
+```
+## [1] 0
+```
+
+5. The function below scales a vector so it falls in the range [0, 1]. How would you apply
+it to every column of a data frame? How would you apply it to every numeric column in a
+data frame?
+
+
+```r
+scale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+df <- data.frame(x = 1:3,
+                 y = c("a", "b", "c"),
+                 z = 4:6,
+                 a = c(T, F, F))
+
+map_if(df, is.numeric, scale01)
+```
+
+```
+## $x
+## [1] 0.0 0.5 1.0
+## 
+## $y
+## [1] "a" "b" "c"
+## 
+## $z
+## [1] 0.0 0.5 1.0
+## 
+## $a
+## [1]  TRUE FALSE FALSE
+```
+
+# 9.7 Base functionals
+
+## 9.7.1 Matrices and arrays
+
+* `base::apply()` to work with two-dimensional and higher vectors while `map()` works best
+with 1D vectors
+
+
+```r
+a2d <- matrix(1:20, nrow = 5)
+apply(a2d, 1, mean)
+```
+
+```
+## [1]  8.5  9.5 10.5 11.5 12.5
+```
+
+```r
+apply(a2d, 2, mean)
+```
+
+```
+## [1]  3  8 13 18
+```
+
+
+```r
+a3d <- array(1:24, c(2, 3, 4))
+apply(a3d, 1, mean)
+```
+
+```
+## [1] 12 13
+```
+
+```r
+apply(a3d, c(1, 2), mean)
+```
+
+```
+##      [,1] [,2] [,3]
+## [1,]   10   12   14
+## [2,]   11   13   15
+```
+
+* caveats of using `apply()`: no control of output type, not idempotent (output not always
+same of input)
+
+
+## 9.7.2 Mathematical concerns
+
+* `integrate()` finds the area under the curve defined by `f()`
+
+* `uniroot()` finds where `f()` hits zero
+
+* `optimize()` finds the location of the lowest (or highest) value of `f()`
+
+
+```r
+integrate(sin, 0, pi)
+```
+
+```
+## 2 with absolute error < 2.2e-14
+```
+
+```r
+str(uniroot(sin, pi * c(1 / 2, 3 / 2)))
+```
+
+```
+## List of 5
+##  $ root      : num 3.14
+##  $ f.root    : num 1.22e-16
+##  $ iter      : int 2
+##  $ init.it   : int NA
+##  $ estim.prec: num 6.1e-05
+```
+
+```r
+str(optimise(sin, c(0, 2 * pi)))
+```
+
+```
+## List of 2
+##  $ minimum  : num 4.71
+##  $ objective: num -1
+```
+
+```r
+str(optimise(sin, c(0, pi), maximum = TRUE))
+```
+
+```
+## List of 2
+##  $ maximum  : num 1.57
+##  $ objective: num 1
+```
+
+## 9.7.3 Exercises
+
+1. How does `apply()` arrange the output? Read the documentation and perform some experiments.
+
+
+```r
+a2d <- matrix(1:20, nrow = 5)
+a2d
+```
+
+```
+##      [,1] [,2] [,3] [,4]
+## [1,]    1    6   11   16
+## [2,]    2    7   12   17
+## [3,]    3    8   13   18
+## [4,]    4    9   14   19
+## [5,]    5   10   15   20
+```
+
+```r
+apply(a2d, 1, mean)
+```
+
+```
+## [1]  8.5  9.5 10.5 11.5 12.5
+```
+
+```r
+apply(a2d, 2, mean)
+```
+
+```
+## [1]  3  8 13 18
+```
+
+2. What do `eapply()` and `rapply()` do? Does purrr have equivalents?
+
+`eapply()` applies a function over values in an environment. `rapply()` recursively
+applies a function over a list.
+
+3. Challenge: read about the fixed point algorithm. Complete the exercises using R.
 
 
 
