@@ -30,7 +30,7 @@ square
 ## function(x) {
 ##     x ^ exp
 ##   }
-## <environment: 0x0000018ffea2fa38>
+## <environment: 0x0000023e620d0ca8>
 ```
 
 ```r
@@ -41,8 +41,8 @@ cube
 ## function(x) {
 ##     x ^ exp
 ##   }
-## <bytecode: 0x0000018ffcf712f0>
-## <environment: 0x0000018ffe58c1e8>
+## <bytecode: 0x0000023e620b6b68>
+## <environment: 0x0000023e6213c980>
 ```
 
 ```r
@@ -85,7 +85,7 @@ square
 ## function(x) {
 ##     x ^ exp
 ##   }
-## <environment: 0x0000018ffea2fa38>
+## <environment: 0x0000023e620d0ca8>
 ```
 
 ```r
@@ -96,8 +96,8 @@ cube
 ## function(x) {
 ##     x ^ exp
 ##   }
-## <bytecode: 0x0000018ffcf712f0>
-## <environment: 0x0000018ffe58c1e8>
+## <bytecode: 0x0000023e620b6b68>
+## <environment: 0x0000023e6213c980>
 ```
 
 
@@ -106,7 +106,7 @@ env_print(square)
 ```
 
 ```
-## <environment: 0x0000018ffea2fa38>
+## <environment: 0x0000023e620d0ca8>
 ## Parent: <environment: global>
 ## Bindings:
 ## • exp: <dbl>
@@ -117,7 +117,7 @@ env_print(cube)
 ```
 
 ```
-## <environment: 0x0000018ffe58c1e8>
+## <environment: 0x0000023e6213c980>
 ## Parent: <environment: global>
 ## Bindings:
 ## • exp: <dbl>
@@ -279,7 +279,7 @@ force
 ```
 ## function (x) 
 ## x
-## <bytecode: 0x0000018ffbdacbd0>
+## <bytecode: 0x0000023e5f956c30>
 ## <environment: namespace:base>
 ```
 
@@ -312,7 +312,7 @@ Fn
 ```
 ## Empirical CDF 
 ## Call: ecdf(x)
-##  x[1:12] = -1.289, -0.81683, -0.29216,  ..., 1.3041, 1.5297
+##  x[1:12] = -0.96056, -0.2294, -0.21874,  ..., 1.8791, 2.1935
 ```
 
 ```r
@@ -320,8 +320,8 @@ Fn(x)
 ```
 
 ```
-##  [1] 0.66666667 0.91666667 0.41666667 0.83333333 0.33333333 0.58333333
-##  [7] 1.00000000 0.08333333 0.75000000 0.25000000 0.16666667 0.50000000
+##  [1] 0.91666667 0.83333333 0.16666667 1.00000000 0.41666667 0.08333333
+##  [7] 0.58333333 0.33333333 0.25000000 0.50000000 0.66666667 0.75000000
 ```
 
 ```r
@@ -621,8 +621,8 @@ plot_dev("pdf")
 
 ```
 ## function(filename, ...) grDevices::pdf(file = filename, ...)
-## <bytecode: 0x0000018f8646f390>
-## <environment: 0x0000018f8616cec8>
+## <bytecode: 0x0000023e698971e0>
+## <environment: 0x0000023e61fa43d0>
 ```
 
 ```r
@@ -631,8 +631,8 @@ plot_dev("png")
 
 ```
 ## function(...) grDevices::png(..., res = dpi, units = "in")
-## <bytecode: 0x0000018f86644f80>
-## <environment: 0x0000018f869d9988>
+## <bytecode: 0x0000023e699f6580>
+## <environment: 0x0000023e69bfc8e8>
 ```
 
 ## 10.3.4 Exercises
@@ -651,6 +651,500 @@ p + facet_grid(vs ~ ., labeller = label_bquote(alpha ^ .(vs)))
 #p + facet_grid(. ~ vs, labeller = label_bquote(cols = .(vs) ^ .(vs)))
 #p + facet_grid(. ~ vs + am, labeller = label_bquote(cols = .(am) ^ .(vs)))
 ```
+
+# 10.4 Statistical factories
+
+## 10.4.1 Box-Cox transformation
+
+* transformation to transform data towards normality
+
+
+```r
+boxcox1 <- function(x, lambda) {
+  stopifnot(length(lambda) == 1)
+  
+  if (lambda == 0) {
+    log(x)
+  } else {
+    (x ^ lambda - 1) / lambda
+  }
+}
+```
+
+
+```r
+boxcox2 <- function(lambda) {
+  if (lambda == 0) {
+    function(x) log(x)
+  } else {
+    function(x) (x ^ lambda - 1) / lambda
+  }
+}
+
+stat_boxcox <- function(lambda) {
+  stat_function(aes(colour = lambda), fun = boxcox2(lambda), size = 1)
+}
+
+ggplot(data.frame(x = c(0, 5)), aes(x)) + 
+  lapply(c(0.5, 1, 1.5), stat_boxcox) + 
+  scale_colour_viridis_c(limits = c(0, 1.5))
+```
+
+```
+## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+## ℹ Please use `linewidth` instead.
+```
+
+![](10-function_factories_files/figure-html/unnamed-chunk-32-1.png)<!-- -->
+
+```r
+# visually, log() does seem to make sense as the transformation
+# for lambda = 0; as values get smaller and smaller, the function
+# gets close and closer to a log transformation
+ggplot(data.frame(x = c(0.01, 1)), aes(x)) + 
+  lapply(c(0.5, 0.25, 0.1, 0), stat_boxcox) + 
+  scale_colour_viridis_c(limits = c(0, 1.5))
+```
+
+![](10-function_factories_files/figure-html/unnamed-chunk-32-2.png)<!-- -->
+
+## 10.4.2 Bootstrap generators
+
+
+```r
+boot_permute <- function(df, var) {
+  n <- nrow(df)
+  force(var)
+  
+  function() {
+    col <- df[[var]]
+    col[sample(n, replace = TRUE)]
+  }
+}
+
+boot_mtcars1 <- boot_permute(mtcars, "mpg")
+head(boot_mtcars1())
+```
+
+```
+## [1] 21.4 21.4 15.0 21.5 33.9 30.4
+```
+
+```r
+head(boot_mtcars1())
+```
+
+```
+## [1] 32.4 19.2 10.4 17.3 22.8 32.4
+```
+
+
+```r
+boot_model <- function(df, formula) {
+  mod <- lm(formula, data = df)
+  fitted <- unname(fitted(mod))
+  resid <- unname(resid(mod))
+  rm(mod)
+
+  function() {
+    fitted + sample(resid)
+  }
+} 
+
+boot_mtcars2 <- boot_model(mtcars, mpg ~ wt)
+head(boot_mtcars2())
+```
+
+```
+## [1] 24.45596 22.27620 22.10501 19.40940 16.61753 21.25762
+```
+
+```r
+head(boot_mtcars2())
+```
+
+```
+## [1] 22.58936 27.90084 26.98924 17.32171 20.07349 14.88789
+```
+
+## 10.4.3 Maximum likelihood estimation
+
+
+```r
+lprob_poisson <- function(lambda, x) {
+  n <- length(x)
+  (log(lambda) * sum(x)) - (n * lambda) - sum(lfactorial(x))
+}
+```
+
+
+```r
+x1 <- c(41, 30, 31, 38, 29, 24, 30, 29, 31, 38)
+```
+
+
+```r
+lprob_poisson(10, x1)
+```
+
+```
+## [1] -183.6405
+```
+
+```r
+lprob_poisson(20, x1)
+```
+
+```
+## [1] -61.14028
+```
+
+```r
+lprob_poisson(30, x1)
+```
+
+```
+## [1] -30.98598
+```
+
+
+```r
+ll_poisson1 <- function(x) {
+  n <- length(x)
+
+  function(lambda) {
+    log(lambda) * sum(x) - n * lambda - sum(lfactorial(x))
+  }
+}
+```
+
+
+```r
+ll_poisson2 <- function(x) {
+  n <- length(x)
+  sum_x <- sum(x)
+  c <- sum(lfactorial(x))
+
+  function(lambda) {
+    log(lambda) * sum_x - n * lambda - c
+  }
+}
+```
+
+
+```r
+ll1 <- ll_poisson2(x1)
+
+ll1(10)
+```
+
+```
+## [1] -183.6405
+```
+
+```r
+ll1(20)
+```
+
+```
+## [1] -61.14028
+```
+
+```r
+ll1(30)
+```
+
+```
+## [1] -30.98598
+```
+
+
+```r
+optimise(ll1, c(0, 100), maximum = TRUE)
+```
+
+```
+## $maximum
+## [1] 32.09999
+## 
+## $objective
+## [1] -30.26755
+```
+
+
+```r
+optimise(lprob_poisson, c(0, 100), x = x1, maximum = TRUE)
+```
+
+```
+## $maximum
+## [1] 32.09999
+## 
+## $objective
+## [1] -30.26755
+```
+
+* values precomputed in function factory (why not just store as object?)
+
+* two-level design
+
+## 10.4.4 Exercises
+
+1. In `boot_model()`, why don't I need to force the valuation of `df` or `model`?
+
+`df` and `model` are already executed in `mod` and deleted. The values of `fitted`
+and `resid` will not change.
+
+2. Why might you formulate the Box-Cox transformation like this?
+
+
+```r
+boxcox3 <- function(x) { # since x is a function input, x will be fixed
+  function(lambda) { # while lambda can be free to vary, useful for testing different lambda values
+    if (lambda == 0) {
+      log(x)
+    } else {
+      (x ^ lambda - 1) / lambda
+    }
+  }  
+}
+```
+
+3. Why don't you need to worry that `boot_permute()` stores a copy of the data inside
+the function that it generates?
+
+
+```r
+boot_permute <- function(df, var) {
+  n <- nrow(df)
+  force(var)
+  
+  function() {
+    col <- df[[var]] # no copy on modify behavior
+    col[sample(n, replace = TRUE)]
+  }
+}
+```
+
+4. How much time does `l1_poisson2()` save compared to `l1_poisson1()`? Use
+`bench::mark()` to see how much faster the optimization occurs. How does changing
+the length of `x` change the results?
+
+
+```r
+ll_poisson1 <- function(x) {
+  n <- length(x)
+
+  function(lambda) {
+    log(lambda) * sum(x) - n * lambda - sum(lfactorial(x))
+  }
+}
+```
+
+
+```r
+ll_poisson2 <- function(x) {
+  n <- length(x)
+  sum_x <- sum(x)
+  c <- sum(lfactorial(x))
+
+  function(lambda) {
+    log(lambda) * sum_x - n * lambda - c
+  }
+}
+```
+
+
+```r
+library(bench)
+x1 <- c(41, 30, 31, 38, 29, 24, 30, 29, 31, 38)
+x2 <- c(41, 30, 31, 38, 29, 24, 30, 29, 31, 38, 41, 30, 31, 38, 29, 24, 30, 29, 31, 38)
+
+mark(
+  poisson1_x1 = optimise(ll_poisson1(x1), c(0,100), maximum = TRUE),
+  poisson2_x1 = optimise(ll_poisson2(x1), c(0,100), maximum = TRUE)#,
+  #poisson1_x2 = optimise(ll_poisson1(x2), c(0,100), maximum = TRUE),
+  #poisson2_x2 = optimise(ll_poisson2(x2), c(0,100), maximum = TRUE)
+)
+```
+
+```
+## # A tibble: 2 × 6
+##   expression       min   median `itr/sec` mem_alloc `gc/sec`
+##   <bch:expr>  <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
+## 1 poisson1_x1   39.9µs   42.6µs    20956.        0B    10.6 
+## 2 poisson2_x1   21.6µs   23.3µs    38358.        0B     7.67
+```
+
+```r
+mark(
+  #poisson1_x1 = optimise(ll_poisson1(x1), c(0,100), maximum = TRUE),
+  #poisson2_x1 = optimise(ll_poisson2(x1), c(0,100), maximum = TRUE)#,
+  poisson1_x2 = optimise(ll_poisson1(x2), c(0,100), maximum = TRUE),
+  poisson2_x2 = optimise(ll_poisson2(x2), c(0,100), maximum = TRUE)
+)
+```
+
+```
+## # A tibble: 2 × 6
+##   expression       min   median `itr/sec` mem_alloc `gc/sec`
+##   <bch:expr>  <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
+## 1 poisson1_x2   47.7µs     50µs    18319.    2.44KB     8.36
+## 2 poisson2_x2   22.5µs   24.6µs    32151.      208B     6.43
+```
+
+## 10.5 Function factories + functionals
+
+
+```r
+names <- list(
+  square = 2, 
+  cube = 3, 
+  root = 1/2, 
+  cuberoot = 1/3, 
+  reciprocal = -1
+)
+funs <- purrr::map(names, power1)
+
+funs$root(64)
+```
+
+```
+## [1] 8
+```
+
+```r
+funs$root
+```
+
+```
+## function(x) {
+##     x ^ exp
+##   }
+## <bytecode: 0x0000023e620b6b68>
+## <environment: 0x0000023e6ad424b8>
+```
+
+* temporary effect, use `with()`
+
+
+```r
+with(funs, root(100))
+```
+
+```
+## [1] 10
+```
+
+* longer effect, `attach()` functions to search path, then `detach()`
+
+
+```r
+attach(funs)
+```
+
+```
+## The following objects are masked _by_ .GlobalEnv:
+## 
+##     cube, square
+```
+
+```r
+root(100)
+```
+
+```
+## [1] 10
+```
+
+```r
+detach(funs)
+```
+
+## 10.5.1 Exercises
+
+1. Which of the following commands is equivalent to `with(x, f(z))`?
+
+`x` is a list of functions. `f()` is a function in `x`. `z` is the input for `f()`.
+
+
+```r
+# funs$root(funs$100) funs is not subsettable by input z
+
+# root(funs$100) same as above and root() doesn't exist in global env
+
+funs$root(100) # this works
+```
+
+```
+## [1] 10
+```
+
+```r
+# root(100) f() is a function in x, does not exist in global env
+```
+
+2. Compare and contrast the effects of `env_bind()` vs. `attach()` for the following
+code.
+
+
+```r
+funs <- list(
+  mean = function(x) mean(x, na.rm = TRUE),
+  sum = function(x) sum(x, na.rm = TRUE)
+)
+
+attach(funs)
+```
+
+```
+## The following objects are masked from package:base:
+## 
+##     mean, sum
+```
+
+```r
+mean <- function(x) stop("Hi!")
+search() # added to search path
+```
+
+```
+##  [1] ".GlobalEnv"        "funs"              "package:bench"    
+##  [4] "package:scales"    "package:ggplot2"   "package:rlang"    
+##  [7] "package:stats"     "package:graphics"  "package:grDevices"
+## [10] "package:utils"     "package:datasets"  "package:methods"  
+## [13] "Autoloads"         "package:base"
+```
+
+```r
+detach(funs)
+
+env_bind(globalenv(), !!!funs)
+mean <- function(x) stop("Hi!") # added to global environment
+env_unbind(globalenv(), names(funs))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
