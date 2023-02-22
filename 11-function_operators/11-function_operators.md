@@ -1,0 +1,647 @@
+---
+title: 'Chapter 11: Function operators'
+author: "Paulo Magalang"
+date: "2023-02-21"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+
+```r
+library(purrr)
+library(memoise)
+```
+
+# 11.1 Introduction
+
+* function operator: function that takes one (or more) functions as input and returns
+a function as an output
+
+
+```r
+chatty <- function(f) {
+  force(f)
+  
+  function(x, ...) {
+    res <- f(x, ...)
+    cat("Processing ", x, "\n", sep = "")
+    res
+  }
+}
+f <- function(x) x ^ 2
+s <- c(3, 2, 1)
+
+purrr::map_dbl(s, chatty(f))
+```
+
+```
+## Processing 3
+## Processing 2
+## Processing 1
+```
+
+```
+## [1] 9 4 1
+```
+
+# 11.2 Existing function operators
+
+## 11.2.1 Capturing errors with `purrr::safely()`
+
+
+```r
+x <- list(
+  c(0.512, 0.165, 0.717),
+  c(0.064, 0.781, 0.427),
+  c(0.890, 0.785, 0.495),
+  "oops"
+)
+
+#out <- rep(NA_real_, length(x))
+#for (i in seq_along(x)) {
+#  out[[i]] <- sum(x[[i]])
+#}
+#out
+```
+
+* `purrr::safely()`: function operator that transforms a functio to turn errors into data
+
+
+```r
+safe_sum <- safely(sum)
+safe_sum
+```
+
+```
+## function (...) 
+## capture_error(.f(...), otherwise, quiet)
+## <bytecode: 0x000001c3222de440>
+## <environment: 0x000001c3222ddfa8>
+```
+
+
+```r
+str(safe_sum(x[[1]]))
+```
+
+```
+## List of 2
+##  $ result: num 1.39
+##  $ error : NULL
+```
+
+```r
+str(safe_sum(x[[4]]))
+```
+
+```
+## List of 2
+##  $ result: NULL
+##  $ error :List of 2
+##   ..$ message: chr "invalid 'type' (character) of argument"
+##   ..$ call   : language .Primitive("sum")(..., na.rm = na.rm)
+##   ..- attr(*, "class")= chr [1:3] "simpleError" "error" "condition"
+```
+
+
+```r
+#out <- map(x, safely(sum))
+#str(out)
+```
+
+
+```r
+out <- transpose(map(x, safely(sum)))
+str(out)
+```
+
+```
+## List of 2
+##  $ result:List of 4
+##   ..$ : num 1.39
+##   ..$ : num 1.27
+##   ..$ : num 2.17
+##   ..$ : NULL
+##  $ error :List of 4
+##   ..$ : NULL
+##   ..$ : NULL
+##   ..$ : NULL
+##   ..$ :List of 2
+##   .. ..$ message: chr "invalid 'type' (character) of argument"
+##   .. ..$ call   : language .Primitive("sum")(..., na.rm = na.rm)
+##   .. ..- attr(*, "class")= chr [1:3] "simpleError" "error" "condition"
+```
+
+
+```r
+ok <- map_lgl(out$error, is.null)
+ok
+```
+
+```
+## [1]  TRUE  TRUE  TRUE FALSE
+```
+
+```r
+x[!ok]
+```
+
+```
+## [[1]]
+## [1] "oops"
+```
+
+```r
+out$result[ok]
+```
+
+```
+## [[1]]
+## [1] 1.394
+## 
+## [[2]]
+## [1] 1.272
+## 
+## [[3]]
+## [1] 2.17
+```
+
+
+```r
+fit_model <- function(df) {
+  glm(y ~ x1 + x2 * x3, data = df)
+}
+
+models <- transpose(map(datasets, safely(fit_model)))
+ok <- map_lgl(models$error, is.null)
+
+# which data failed to converge?
+datasets[!ok]
+
+# which models were successful?
+models[ok]
+```
+
+## 11.2.2 Caching computations with `memoise::memoise()`
+
+* memoization of a function: a function remembers previous inputs and returns cached results
+
+
+```r
+slow_function <- function(x) {
+  Sys.sleep(1)
+  x * 10 * runif(1)
+}
+system.time(print(slow_function(1)))
+```
+
+```
+## [1] 6.859196
+```
+
+```
+##    user  system elapsed 
+##    0.00    0.00    1.01
+```
+
+```r
+system.time(print(slow_function(1)))
+```
+
+```
+## [1] 8.190628
+```
+
+```
+##    user  system elapsed 
+##    0.01    0.00    1.03
+```
+
+
+```r
+fast_function <- memoise::memoise(slow_function)
+
+system.time(print(fast_function(1)))
+```
+
+```
+## [1] 6.385826
+```
+
+```
+##    user  system elapsed 
+##    0.00    0.00    1.02
+```
+
+```r
+system.time(print(fast_function(1)))
+```
+
+```
+## [1] 6.385826
+```
+
+```
+##    user  system elapsed 
+##    0.01    0.00    0.02
+```
+
+
+```r
+fib <- function(n) {
+  if (n < 2) return(1)
+  fib(n - 2) + fib(n - 1)
+}
+system.time(fib(23))
+```
+
+```
+##    user  system elapsed 
+##    0.04    0.00    0.06
+```
+
+```r
+system.time(fib(24))
+```
+
+```
+##    user  system elapsed 
+##    0.09    0.00    0.09
+```
+
+
+```r
+fib2 <- memoise::memoise(function(n) {
+  if (n < 2) return(1)
+  fib2(n - 2) + fib2(n - 1)
+})
+system.time(fib2(23))
+```
+
+```
+##    user  system elapsed 
+##    0.01    0.00    0.01
+```
+
+```r
+system.time(fib2(24))
+```
+
+```
+##    user  system elapsed 
+##       0       0       0
+```
+
+## 11.2.3 Exercises
+
+1. Base R provides a function operator in the form of `Vectorize()`. What does it do?
+When might you use it?
+
+`Vectorize()` allows you to input vectors to functions that expect single values.
+
+
+```r
+# example from documentation
+vrep <- Vectorize(rep.int)
+vrep(1:4, 4:1)
+```
+
+```
+## [[1]]
+## [1] 1 1 1 1
+## 
+## [[2]]
+## [1] 2 2 2
+## 
+## [[3]]
+## [1] 3 3
+## 
+## [[4]]
+## [1] 4
+```
+
+```r
+# equivalent to rep.int(x[i], times = y[j]) and stores as list
+```
+
+
+2. Read the source code for `possibly()`. How does it work?
+
+```
+function (.f, otherwise = NULL, quiet = TRUE) 
+{
+    .f <- as_mapper(.f)
+    force(otherwise)
+    check_bool(quiet)
+    function(...) {
+        tryCatch(.f(...), error = function(e) {
+            if (!quiet) 
+                message("Error: ", conditionMessage(e)) # outputs a message instead of throwing an error
+            otherwise
+        })
+    }
+}
+```
+
+3. Read the source code for `safely()`. How does it work?
+
+```
+function (.f, otherwise = NULL, quiet = TRUE) 
+{
+    .f <- as_mapper(.f)
+    force(otherwise)
+    check_bool(quiet)
+    function(...) capture_error(.f(...), otherwise, quiet)
+}
+```
+
+# 11.3 Case study: Creating your own function operators
+
+
+```r
+urls <- c(
+  "adv-r" = "https://adv-r.hadley.nz", 
+  "r4ds" = "http://r4ds.had.co.nz/"
+  # and many many more
+)
+path <- paste(tempdir(), names(urls), ".html")
+
+walk2(urls, path, download.file, quiet = TRUE)
+```
+
+
+```r
+# add delay
+delay_by <- function(f, amount) {
+  force(f)
+  force(amount)
+  
+  function(...) {
+    Sys.sleep(amount)
+    f(...)
+  }
+}
+system.time(runif(100))
+```
+
+```
+##    user  system elapsed 
+##       0       0       0
+```
+
+```r
+system.time(delay_by(runif, 0.1)(100))
+```
+
+```
+##    user  system elapsed 
+##    0.00    0.00    0.09
+```
+
+```r
+walk2(urls, path, delay_by(download.file, 0.1), quiet = TRUE)
+```
+
+
+```r
+dot_every <- function(f, n) {
+  force(f)
+  force(n)
+  
+  i <- 0
+  function(...) {
+    i <<- i + 1 # add internal counter
+    if (i %% n == 0) cat(".")
+    f(...)
+  }
+}
+walk(1:100, runif)
+walk(1:100, dot_every(runif, 10))
+```
+
+```
+## ..........
+```
+
+
+```r
+walk2(
+  urls, path, 
+  dot_every(delay_by(download.file, 0.1), 10), 
+  quiet = TRUE
+)
+```
+
+
+```r
+walk2(
+  urls, path, 
+  download.file %>% dot_every(10) %>% delay_by(0.1), 
+  quiet = TRUE
+)
+```
+
+## 11.3.1 Exercises
+
+1. Weigh the pros and cons of `download.file %>% dot_every(10) %>% delay_by(0.1)` vs
+`download.file %>% delay_by(0.1) %>% dot_every(10)`.
+
+If the delay is large, the first pipeline is preferred since the user will have to wait
+more time to see if the code is actually running.
+
+2. Should you memoize `download.file()`? Why or why not?
+
+Depends on the size of the file being downloaded. You would need at most two times the
+memory to download a file if downloading files is memoized. Even if the files are small,
+memoizing file downloads is unnecessary since those files will probably download faster
+anyways. It might take longer since you would have to open and write many small files.
+
+3. Create a function operator that reports whenever a file is created or deleted in the
+working directory, using `dir()` and `setdiff()`. What other global function effects might you
+want to track?
+
+
+```r
+# inputs are vectors
+compare_dir <- function(old_dir, new_dir) {
+  force(old_dir)
+  force(new_dir)
+  
+  # check whether files were created or destroyed by comparing vector lengths
+  if (length(old_dir) > length(new_dir)) { # file destroyed
+    cat(paste0(setdiff(old_dir, new_dir), " deleted\n"))
+  } else if (length(old_dir) < length(new_dir)) { # file created
+    cat(paste0(setdiff(new_dir, old_dir), " created\n"))
+  } else { # no change
+    cat("No changes")
+  }
+}
+
+# create function operator
+check_dir <- function(f) {
+  force(f)
+  
+  function(...) { # does this function need any input? no
+    # need to get current directory files
+    current_dir <- dir()
+    
+    # call the function f() and compare_dir() at some point
+    f(...) # execute function
+    changed_dir <- dir()
+    
+    compare_dir(current_dir, changed_dir)
+  }
+}
+```
+
+
+```r
+# took test cases from Advanced R solutions
+file_create <- check_dir(file.create)
+file_remove <- check_dir(file.remove)
+
+file_create("delete_me")
+```
+
+```
+## delete_me created
+```
+
+```r
+file_remove("delete_me")
+```
+
+```
+## delete_me deleted
+```
+
+4. Write a function operator that logs a timestamp and message to a file every time a function
+is run.
+
+
+```r
+get_timestamp <- function(...) {
+  time_date <- Sys.time() %>% as.character()
+  return(time_date)
+}
+
+print_to_file <- function(file_to_write, msg) {
+  if (!file.exists(file_to_write)) {
+    file.create(file_to_write)
+  }
+  
+  write(msg, file = file_to_write, append = TRUE)
+}
+
+log_function <- function(f, file_to_write = "log.txt") {
+  force(f)
+  force(file_to_write)
+  
+  function(...) {
+    time <- get_timestamp()
+    msg <- paste0(time, ": function called")
+    
+    print_to_file(file_to_write, msg)
+    f(...)
+  }
+}
+```
+
+
+```r
+# took test cases from Advanced R solutions
+mean2 <- log_function(mean)
+mean2(1:4)
+```
+
+```
+## [1] 2.5
+```
+
+```r
+Sys.sleep(1)
+mean2(1:4)
+```
+
+```
+## [1] 2.5
+```
+
+5. Modify `delay_by()` so that instead of delaying by a fixed amount of time, it ensures that
+a certain amount of time has elapsed since the function was last called. That is, if you called
+`g <- delay_by(1, f); g(); Sys.sleep(2); g()` there shouldn't be an extra delay.
+
+
+```r
+delay_by <- function(f, amount) {
+  force(f)
+  force(amount)
+  
+  function(...) {
+    Sys.sleep(amount)
+    f(...)
+  }
+}
+```
+
+
+```r
+delay_by2 <- function(f, amount) {
+  force(f)
+  force(amount)
+  
+  time <- NULL
+  
+  function(...) {
+    if (!is.null(time)) { # if not init step, just run function
+      execution_time <- Sys.time()
+      
+      time_diff <- abs(time - execution_time)
+      if (as.numeric(time_diff) < amount) { # if time between executions below min threshold, delay
+        wait <- abs(time_diff - amount)
+        Sys.sleep(wait)
+        #Sys.sleep(amount)
+      }
+    }
+    
+    time <<- Sys.time()
+    f(...)
+  }
+}
+```
+
+
+```r
+runif2 <- delay_by2(runif, 4)
+
+system.time(runif2(100))
+```
+
+```
+##    user  system elapsed 
+##       0       0       0
+```
+
+```r
+Sys.sleep(2)
+system.time(runif2(100))
+```
+
+```
+##    user  system elapsed 
+##    0.00    0.00    1.96
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
