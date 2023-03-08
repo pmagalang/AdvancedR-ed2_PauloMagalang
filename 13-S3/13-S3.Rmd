@@ -1,0 +1,532 @@
+---
+title: 'Chapter 13: S3'
+author: "Paulo Magalang"
+date: "2023-03-02"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r}
+library(sloop)
+```
+
+# 13.2: Basics
+
+* S3 objects is abase type with a `class` attribute minimum
+
+```{r}
+f <- factor(c("a", "b", "c"))
+
+typeof(f)
+attributes(f)
+```
+
+```{r}
+# unclass strips the class atribute
+unclass(f)
+```
+
+* S3 objects behave differently from underlying base tyeps when passed to a generic;
+use `sloop::ftype()` to determine if a function is a generic
+
+```{r}
+ftype(print)
+ftype(str)
+ftype(unclass)
+```
+
+* generics define an interface which depends on the class of the argument; example of method
+dispatch
+
+```{r}
+print(f)
+
+# stripping class reverts to integer behaviour
+print(unclass(f))
+```
+
+```{r}
+time <- strptime(c("2017-01-01", "2020-05-04 03:21"), "%Y-%m-%d")
+str(time)
+
+str(unclass(time))
+```
+
+```{r}
+# see the process of method dispatch
+s3_dispatch(print(f))
+```
+
+* methods usually have a `.` in the function name but some base R functions also
+have `.`'s in the function name
+
+```{r, eval = FALSE}
+# use sloop::s3_get_method() to get source code from S3 methods
+weighted.mean.Date
+s3_get_method(weighted.mean.Date)
+```
+
+## 13.2.1 Exercises
+
+1. Describe the difference between `t.test()` and `t.data.frame()`. When is each
+function called?
+
+```{r}
+ftype(t.test)
+ftype(t.data.frame)
+
+s3_dispatch(print(t.test))
+s3_dispatch(print(t.data.frame))
+```
+
+2. Make a list of commonly used base R functions that contain `.` in their name but
+are not S3 methods.
+
+* `data.frame`
+
+* `read.csv`
+
+* `install.packages`
+
+3. What does the `as.data.frame.data.frame()` method do? Why is it confusing? How could you
+avoid this confusion in your own code?
+
+`as.data.frame.data.frame()` checks to see if the object is a data frame and converts it into
+a data frame if it is not. It is confusing since the function call contains many `.`. It can
+be rewritten as `as.data.frame(x)` where `x` is the object of interest.
+
+4. Describe the difference in behavior in these two calls.
+
+```{r}
+set.seed(1014)
+some_days <- as.Date("2017-01-31") + sample(10, 5)
+
+some_days
+mean(some_days) # returns a date object that gives the mean date
+mean(unclass(some_days)) # stripped class behavior for it to behave like numeric values
+```
+
+5. What class of object does the following code return? What base type is it built on?
+What attributes does it use?
+
+```{r}
+x <- ecdf(rpois(100, 10))
+#x
+
+ftype(x)
+typeof(x)
+attributes(x) # returns ecdf object, `call` attribute stores function call
+```
+
+6. What class of object does the following code return? What base type is it built on?
+What attributes does it use?
+
+```{r}
+x <- table(rpois(100, 5))
+#x
+
+typeof(x)
+attributes(x) # returns table obj, stores table names in `dimnames`
+```
+
+# 13.3 Classes
+
+* can directly set class attributes to make an object an instance of a class
+
+```{r}
+# Create and assign class in one step
+x <- structure(list(), class = "my_class")
+
+# Create, then set class
+x <- list()
+class(x) <- "my_class"
+```
+
+
+```{r}
+# determine S3 class with class()
+class(x)
+
+# check if an object is an instance of a class with inherits()
+inherits(x, "my_class")
+inherits(x, "your_class")
+```
+
+```{r}
+# Create a linear model
+mod <- lm(log(mpg) ~ log(disp), data = mtcars)
+class(mod)
+print(mod)
+
+# Turn it into a date (?!)
+class(mod) <- "Date"
+
+# Unsurprisingly this doesn't work very well
+#print(mod)
+```
+
+* constructor: `new_myclass()` that creates new objects with correct structure
+
+* validator: `validate_myclass()` that performs checks to ensure object has correct values
+
+* helper: `myclass()` that provides a convenient way for others to create objects of the class
+
+
+## 13.3.1 Constructors
+
+* constructors enforce consistent object structure
+
+* 3 principles: 
+
+1. be called `my_newclass()`
+
+2. have one argument for the base object and one for each attribute
+
+3. check the type of base object and the types of each attribute
+
+```{r}
+new_Date <- function(x = double()) {
+  stopifnot(is.double(x))
+  structure(x, class = "Date")
+}
+
+new_Date(c(-1, 0, 1))
+```
+
+```{r}
+new_difftime <- function(x = double(), units = "secs") {
+  stopifnot(is.double(x))
+  units <- match.arg(units, c("secs", "mins", "hours", "days", "weeks"))
+
+  structure(x,
+    class = "difftime",
+    units = units
+  )
+}
+
+new_difftime(c(1, 10, 3600), "secs")
+new_difftime(52, "weeks")
+```
+
+
+## 13.3.2 Validators
+
+* constructors only checks if types are correct, better to validate elsewhere to make
+initializing the object cheap
+
+```{r}
+new_factor <- function(x = integer(), levels = character()) {
+  stopifnot(is.integer(x))
+  stopifnot(is.character(levels))
+
+  structure(
+    x,
+    levels = levels,
+    class = "factor"
+  )
+}
+
+# malformed factors
+#new_factor(1:5, "a")
+#new_factor(0:1, "a")
+```
+
+```{r}
+validate_factor <- function(x) {
+  values <- unclass(x)
+  levels <- attr(x, "levels")
+
+  if (!all(!is.na(values) & values > 0)) {
+    stop(
+      "All `x` values must be non-missing and greater than zero",
+      call. = FALSE
+    )
+  }
+
+  if (length(levels) < max(values)) {
+    stop(
+      "There must be at least as many `levels` as possible values in `x`",
+      call. = FALSE
+    )
+  }
+
+  x
+}
+
+#validate_factor(new_factor(1:5, "a"))
+#validate_factor(new_factor(0:1, "a"))
+```
+
+## 13.3.3 Helpers
+
+* helpers always have the same name as the class
+
+* finish by calling the constructor and validator
+
+* create meaningful error messages and UX
+
+```{r}
+difftime <- function(x = double(), units = "secs") {
+  x <- as.double(x) # coercion in helper, not constructor
+  new_difftime(x, units = units)
+}
+
+difftime(1:10)
+```
+
+```{r}
+factor <- function(x = character(), levels = unique(x)) {
+  ind <- match(x, levels) # guess that the levels should be unique values
+  validate_factor(new_factor(ind, levels))
+}
+
+factor(c("a", "a", "b"))
+```
+
+```{r}
+POSIXct <- function(year = integer(), 
+                    month = integer(), 
+                    day = integer(), 
+                    hour = 0L, 
+                    minute = 0L, 
+                    sec = 0, 
+                    tzone = "") {
+  ISOdatetime(year, month, day, hour, minute, sec, tz = tzone)
+}
+
+POSIXct(2020, 1, 1, tzone = "America/New_York")
+```
+
+## 13.3.4 Exercises
+
+1. Write a constructor for `data.frame` objects. What base type is a data frame built on?
+What attributes does it use? What are the restrictions placed on individual elements?
+What about the names?
+
+```{r}
+df <- data.frame(x = c(1, 2), y = c(3, 4))
+typeof(df)
+attributes(df)
+```
+
+
+```{r}
+new_data.frame <- function(x = list(), n = numeric(), row.names = NULL) {
+  stopifnot(is.list(x))
+  
+  # need to check if all columns are the same length
+  stopifnot(unique(all(lengths(x))) == 1)
+  
+  if(is.null(row.names)) { # if no row.names given, set row names as integers
+    row.names <- 1:n
+  } else {
+    # need to check if row.names are characters
+    stopifnot(is.character(row.names))
+    
+    # also if the user supplied the correct number of rows
+    stopifnot(length(row.names) == n)
+    
+    # row names must be unique
+    stopifnot(length(row.names) == length(unique(row.names)))
+  }
+  
+  structure(x,
+            class = "data.frame",
+            row.names = row.names)
+}
+```
+
+```{r}
+x <- list(a = 1, b = 2)
+new_data.frame(x, n = 1)
+```
+
+2. Enhance my `factor()` helper to have better behavior when one or more `values` is not
+found in `levels`. What does `base::factor()` do in this situation?
+
+```{r}
+base::factor(c("a", "b", "c"), levels = c("a", "b"))
+```
+
+```{r}
+new_factor <- function(x = integer(), levels = character()) {
+  stopifnot(is.integer(x))
+  stopifnot(is.character(levels))
+
+  structure(
+    x,
+    levels = levels,
+    class = "factor"
+  )
+}
+```
+
+```{r}
+factor <- function(x = character(), levels = unique(x)) {
+  ind <- match(x, levels) 
+  
+  # just throw an error if the user-supplied level is not defined
+  if (sum(is.na(ind)) > 0) { # if NA found in ind
+    missing_levels <- setdiff(x, levels)
+    stop("factors ", paste0("'", missing_levels, "'", collapse = ", "), "not defined")
+  }
+  
+  
+  validate_factor(new_factor(ind, levels))
+}
+
+factor(c("a", "a", "b"))
+```
+
+```{r}
+x <- c("a", "b", "c")
+levels <- c("a", "b")
+match(x, levels)
+```
+
+3. Carefully read the source code of `factor()`. What does it do that my constructor does
+not?
+
+```
+function (x = character(), levels, labels = levels, exclude = NA, 
+    ordered = is.ordered(x), nmax = NA) 
+{
+    if (is.null(x)) 
+        x <- character() # forces input to be character
+    nx <- names(x)
+    if (missing(levels)) { # automatically set levels based on x if not supplied
+        y <- unique(x, nmax = nmax)
+        ind <- order(y)
+        levels <- unique(as.character(y)[ind])
+    }
+    force(ordered)
+    if (!is.character(x)) 
+        x <- as.character(x)
+    levels <- levels[is.na(match(levels, exclude))]
+    f <- match(x, levels)
+    if (!is.null(nx)) 
+        names(f) <- nx
+    if (missing(labels)) {
+        levels(f) <- as.character(levels)
+    }
+    else {
+        nlab <- length(labels)
+        if (nlab == length(levels)) {
+            nlevs <- unique(xlevs <- as.character(labels))
+            at <- attributes(f)
+            at$levels <- nlevs
+            f <- match(xlevs, nlevs)[f]
+            attributes(f) <- at
+        }
+        else if (nlab == 1L) 
+            levels(f) <- paste0(labels, seq_along(levels))
+        else stop(gettextf("invalid 'labels'; length %d should be 1 or %d", 
+            nlab, length(levels)), domain = NA)
+    }
+    class(f) <- c(if (ordered) "ordered", "factor")
+    f
+}
+```
+
+4. Factors have an optimal "contrasts" attribute. Read the help for `C()`, and
+briefly describe the purpose of the attribute. What type should it have? Rewrite
+the `new_factor()` constructor to include this attribute.
+
+The help file for `C()` was not that informative but it did mention that it can
+be a matrix or a character string.
+
+```{r}
+new_factor <- function(x = integer(), levels = character(), contrasts = NULL) {
+  stopifnot(is.integer(x))
+  stopifnot(is.character(levels))
+  
+  if(!is.null(contrasts)) { # contrasts can be either matrix or character
+    stopifnot(is.matrix(contrasts) | is.character(contrasts))
+  }
+
+  structure(
+    x,
+    levels = levels,
+    class = "factor",
+    contrasts = contrasts
+  )
+}
+```
+
+5. Read the documentation for `utils::as.roman()`. How would you write a constructor
+for this class? Does it need a validator? What might a helper do?
+
+```{r}
+new_roman <- function(x = integer()) {
+  stopifnot(is.integer(x))
+  structure(x, class = "roman")
+}
+```
+
+```{r}
+# documentation states that numbers between 1 and 3899 have unique representation as roman numerals
+validate_roman <- function(x) {
+  value <- unclass(x)
+  
+  if (value > 3899 | value < 1) {
+    stop("Only numbers between 1 and 3899 have a unique representation as roman numbers")
+  }
+  
+  x
+}
+```
+
+```{r}
+roman <- function(x = numeric()) {
+  x <- as.integer(x)
+  
+  validate_roman(new_roman(x))
+}
+```
+
+```{r}
+x <- roman(1)
+x
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
