@@ -724,8 +724,8 @@ new_data.frame(x, n = 1)</code></pre>
 ## 1 1 2</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>Enhance my <code>factor()</code> helper to have better behavior when
-one or more <code>values</code> is not found in <code>levels</code>.
-What does <code>base::factor()</code> do in this situation?</li>
+one or more <code>values</code> is not found in <code>levels</code>.What
+does <code>base::factor()</code> do in this s ituation?</li>
 </ol>
 <pre class="r"><code>base::factor(c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;), levels = c(&quot;a&quot;, &quot;b&quot;))</code></pre>
 <pre><code>## [1] a    b    &lt;NA&gt;
@@ -852,6 +852,289 @@ validate_roman &lt;- function(x) {
 <pre class="r"><code>x &lt;- roman(1)
 x</code></pre>
 <pre><code>## [1] I</code></pre>
+</div>
+</div>
+<div id="generics-and-methods" class="section level1">
+<h1>13.4 Generics and Methods</h1>
+<ul>
+<li>S3 generics perform method dispatch using
+<code>UseMethod(generic_fxn, arg)</code></li>
+</ul>
+<pre class="r"><code>mean</code></pre>
+<pre><code>## function (x, ...) 
+## UseMethod(&quot;mean&quot;)
+## &lt;bytecode: 0x000001f43b90c1e8&gt;
+## &lt;environment: namespace:base&gt;</code></pre>
+<pre class="r"><code>my_new_generic &lt;- function(x) {
+  UseMethod(&quot;my_new_generic&quot;)
+}
+
+my_new_generic</code></pre>
+<pre><code>## function(x) {
+##   UseMethod(&quot;my_new_generic&quot;)
+## }</code></pre>
+<div id="method-dispatch" class="section level2">
+<h2>13.4.1 Method dispatch</h2>
+<ul>
+<li><code>UseMethod()</code> creates a vector of method names and looks
+for each potential method in the vector</li>
+</ul>
+<pre class="r"><code>x &lt;- Sys.Date()
+s3_dispatch(print(x))</code></pre>
+<pre><code>## =&gt; print.Date
+##  * print.default</code></pre>
+<ul>
+<li><p><code>=&gt;</code> indicates called method; <code>*</code>
+indicates a method that is defined</p></li>
+<li><p>“default” class is a pseudo-class in the example</p></li>
+</ul>
+<pre class="r"><code>x &lt;- matrix(1:10, nrow = 2)
+s3_dispatch(mean(x))</code></pre>
+<pre><code>##    mean.matrix
+##    mean.integer
+##    mean.numeric
+## =&gt; mean.default</code></pre>
+<pre class="r"><code>s3_dispatch(sum(Sys.time()))</code></pre>
+<pre><code>##    sum.POSIXct
+##    sum.POSIXt
+##    sum.default
+## =&gt; Summary.POSIXct
+##    Summary.POSIXt
+##    Summary.default
+## -&gt; sum (internal)</code></pre>
+</div>
+<div id="finding-methods" class="section level2">
+<h2>13.4.2 Finding methods</h2>
+<ul>
+<li><code>sloop::s3_methods_generic()</code> and
+<code>sloop::s3_methods_class()</code> allows user to find all methods
+that are defined for a generic or associated with a class</li>
+</ul>
+<pre class="r"><code>s3_methods_generic(&quot;mean&quot;)</code></pre>
+<pre><code>## # A tibble: 7 × 4
+##   generic class      visible source             
+##   &lt;chr&gt;   &lt;chr&gt;      &lt;lgl&gt;   &lt;chr&gt;              
+## 1 mean    Date       TRUE    base               
+## 2 mean    default    TRUE    base               
+## 3 mean    difftime   TRUE    base               
+## 4 mean    POSIXct    TRUE    base               
+## 5 mean    POSIXlt    TRUE    base               
+## 6 mean    quosure    FALSE   registered S3method
+## 7 mean    vctrs_vctr FALSE   registered S3method</code></pre>
+<pre class="r"><code>s3_methods_class(&quot;ordered&quot;)</code></pre>
+<pre><code>## # A tibble: 4 × 4
+##   generic       class   visible source             
+##   &lt;chr&gt;         &lt;chr&gt;   &lt;lgl&gt;   &lt;chr&gt;              
+## 1 as.data.frame ordered TRUE    base               
+## 2 Ops           ordered TRUE    base               
+## 3 relevel       ordered FALSE   registered S3method
+## 4 Summary       ordered TRUE    base</code></pre>
+</div>
+<div id="creating-methods" class="section level2">
+<h2>13.4.3 Creating methods</h2>
+<ul>
+<li><p>only write a method if you own the generic or the class</p></li>
+<li><p>a method must have the same arguments as its generic; only
+exception is if the generic has <code>...</code></p></li>
+</ul>
+</div>
+<div id="exercises-2" class="section level2">
+<h2>13.4.4 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Read the source code for <code>t()</code> and <code>t.test()</code>
+and confirm that <code>t.test()</code> is an S3 generic and not an S3
+method. What happens if you create an object with class
+<code>test</code> and call <code>t()</code> with it? Why?</li>
+</ol>
+<pre class="r"><code>ftype(t)</code></pre>
+<pre><code>## [1] &quot;S3&quot;      &quot;generic&quot;</code></pre>
+<pre class="r"><code>ftype(t.test) # t.test is an S3 generic</code></pre>
+<pre><code>## [1] &quot;S3&quot;      &quot;generic&quot;</code></pre>
+<pre class="r"><code>x &lt;- structure(1:10, class = &quot;test&quot;)
+x</code></pre>
+<pre><code>##  [1]  1  2  3  4  5  6  7  8  9 10
+## attr(,&quot;class&quot;)
+## [1] &quot;test&quot;</code></pre>
+<pre class="r"><code>t(x)</code></pre>
+<pre><code>##      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+## [1,]    1    2    3    4    5    6    7    8    9    10
+## attr(,&quot;class&quot;)
+## [1] &quot;test&quot;</code></pre>
+<pre class="r"><code># the 1:10 vector is transposed
+
+s3_dispatch(t(x)) # method dispatch indicates that t.test() was called but a t-test wasn&#39;t run??</code></pre>
+<pre><code>## =&gt; t.test
+##  * t.default</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>What generics does the <code>table</code> class have methods
+for?</li>
+</ol>
+<pre class="r"><code>sloop::s3_methods_class(&quot;table&quot;)</code></pre>
+<pre><code>## # A tibble: 10 × 4
+##    generic       class visible source             
+##    &lt;chr&gt;         &lt;chr&gt; &lt;lgl&gt;   &lt;chr&gt;              
+##  1 [             table TRUE    base               
+##  2 aperm         table TRUE    base               
+##  3 as.data.frame table TRUE    base               
+##  4 Axis          table FALSE   registered S3method
+##  5 lines         table FALSE   registered S3method
+##  6 plot          table FALSE   registered S3method
+##  7 points        table FALSE   registered S3method
+##  8 print         table TRUE    base               
+##  9 summary       table TRUE    base               
+## 10 tail          table FALSE   registered S3method</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>What generics does the <code>ecdf</code> class have methods
+for?</li>
+</ol>
+<pre class="r"><code>sloop::s3_methods_class(&quot;ecdf&quot;)</code></pre>
+<pre><code>## # A tibble: 4 × 4
+##   generic  class visible source             
+##   &lt;chr&gt;    &lt;chr&gt; &lt;lgl&gt;   &lt;chr&gt;              
+## 1 plot     ecdf  TRUE    stats              
+## 2 print    ecdf  FALSE   registered S3method
+## 3 quantile ecdf  FALSE   registered S3method
+## 4 summary  ecdf  FALSE   registered S3method</code></pre>
+<ol start="4" style="list-style-type: decimal">
+<li>Which base generic has the greatest number of defined methods?</li>
+</ol>
+<pre class="r"><code>library(purrr)
+#map(ls(&quot;package:base&quot;), ~ isS3stdGeneric(is_function(.x))) %&gt;% unlist %&gt;% sum
+base_fxns &lt;- map(mget(ls(&quot;package:base&quot;), envir = baseenv()), ~ is_function(.x)) %&gt;% unlist
+base_fxns_filt &lt;- base_fxns[base_fxns] %&gt;% names
+base_generics &lt;- map(base_fxns_filt, is_s3_generic) %&gt;% unlist
+base_generics_filt &lt;- base_fxns_filt[base_generics]
+
+method_num &lt;- map(base_generics_filt, ~ nrow(s3_methods_generic(.x))) 
+names(method_num) &lt;- base_generics_filt
+method_num %&gt;% unlist %&gt;% sort(decreasing = T) %&gt;% head</code></pre>
+<pre><code>##         print        format             [       summary  as.character 
+##           273           128            47            39            31 
+## as.data.frame 
+##            30</code></pre>
+<ol start="5" style="list-style-type: decimal">
+<li>Carefully read the documentation for <code>UseMethod()</code> and
+explain why the following code returns the results that it does. What
+two usual rules of function evaluation does <code>UseMethod()</code>
+violate?</li>
+</ol>
+<pre class="r"><code>g &lt;- function(x) {
+  x &lt;- 10
+  y &lt;- 10
+  UseMethod(&quot;g&quot;)
+}
+g.default &lt;- function(x) c(x = x, y = y)
+# from documentation: If no class name produces a suitable function, the function fun.default is used, if it exists, or an error results.
+
+x &lt;- 1
+y &lt;- 1
+g(x)</code></pre>
+<pre><code>##  x  y 
+##  1 10</code></pre>
+<ol start="6" style="list-style-type: decimal">
+<li>What are the arguments to <code>[</code>? Why is this a hard
+question to answer?</li>
+</ol>
+<p>The arguments to <code>[</code> will depend on the input object (ie:
+is the input a vector, matrix, array, data frame, or a list?).</p>
+<pre class="r"><code>s3_methods_generic(&quot;[&quot;)</code></pre>
+<pre><code>## # A tibble: 47 × 4
+##    generic class                 visible source             
+##    &lt;chr&gt;   &lt;chr&gt;                 &lt;lgl&gt;   &lt;chr&gt;              
+##  1 [       acf                   FALSE   registered S3method
+##  2 [       AsIs                  TRUE    base               
+##  3 [       bibentry              FALSE   registered S3method
+##  4 [       check_details_changes FALSE   registered S3method
+##  5 [       cli_doc               FALSE   registered S3method
+##  6 [       data.frame            TRUE    base               
+##  7 [       Date                  TRUE    base               
+##  8 [       difftime              TRUE    base               
+##  9 [       Dlist                 TRUE    base               
+## 10 [       DLLInfoList           TRUE    base               
+## # … with 37 more rows</code></pre>
+</div>
+</div>
+<div id="object-styles" class="section level1">
+<h1>13.5 Object styles</h1>
+<p>Vector style classes that do not have the <code>length(x)</code>
+property:</p>
+<ul>
+<li>record style, <code>POSIXlt</code>: has 11 date-time components
+under the hood</li>
+</ul>
+<pre class="r"><code>x &lt;- as.POSIXlt(ISOdatetime(2020, 1, 1, 0, 0, 1:3))
+x</code></pre>
+<pre><code>## [1] &quot;2020-01-01 00:00:01 PST&quot; &quot;2020-01-01 00:00:02 PST&quot;
+## [3] &quot;2020-01-01 00:00:03 PST&quot;</code></pre>
+<pre class="r"><code>length(x)</code></pre>
+<pre><code>## [1] 3</code></pre>
+<pre class="r"><code>length(unclass(x))</code></pre>
+<pre><code>## [1] 11</code></pre>
+<pre class="r"><code>x[[1]] # the first date time</code></pre>
+<pre><code>## [1] &quot;2020-01-01 00:00:01 PST&quot;</code></pre>
+<pre class="r"><code>unclass(x)[[1]] # the first component, the number of seconds</code></pre>
+<pre><code>## [1] 1 2 3</code></pre>
+<ul>
+<li>data frames, length refers to dimensionality of data frame but not
+number of rows/cols</li>
+</ul>
+<pre class="r"><code>x &lt;- data.frame(x = 1:100, y = 1:100)
+length(x)</code></pre>
+<pre><code>## [1] 2</code></pre>
+<pre class="r"><code>nrow(x)</code></pre>
+<pre><code>## [1] 100</code></pre>
+<ul>
+<li>scalar objects, <code>lm</code></li>
+</ul>
+<pre class="r"><code>mod &lt;- lm(mpg ~ wt, data = mtcars)
+length(mod)</code></pre>
+<pre><code>## [1] 12</code></pre>
+<div id="exercises-3" class="section level2">
+<h2>13.5.1 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Categorize the objects returned by <code>lm()</code>,
+<code>factor()</code>, <code>table()</code>, <code>as.Date()</code>,
+<code>as.POSIXct()</code>, <code>ecdf()</code>, <code>ordered()</code>,
+<code>I()</code> into the styles described above.</li>
+</ol>
+<ul>
+<li><p>vector style: <code>as.Date()</code>, <code>as.POSIXct()</code>,
+<code>table()</code></p></li>
+<li><p>record style objects:</p></li>
+<li><p>data frames: <code>I()</code>,</p></li>
+<li><p>scalar objects; <code>lm()</code>, <code>ecdf()</code></p></li>
+</ul>
+<p>length of <code>factor()</code> and <code>ordered()</code> will give
+length of input vector but not length of levels</p>
+<ol start="2" style="list-style-type: decimal">
+<li>What would a constructor function for <code>lm</code> objects,
+<code>new_lm()</code>, look like? Use <code>?lm</code> and
+experimentation to figure out the required fields and their types.</li>
+</ol>
+<pre class="r"><code>mod &lt;- lm(mpg ~ cyl, data = mtcars)
+attributes(mod)</code></pre>
+<pre><code>## $names
+##  [1] &quot;coefficients&quot;  &quot;residuals&quot;     &quot;effects&quot;       &quot;rank&quot;         
+##  [5] &quot;fitted.values&quot; &quot;assign&quot;        &quot;qr&quot;            &quot;df.residual&quot;  
+##  [9] &quot;xlevels&quot;       &quot;call&quot;          &quot;terms&quot;         &quot;model&quot;        
+## 
+## $class
+## [1] &quot;lm&quot;</code></pre>
+<pre class="r"><code>typeof(mod)</code></pre>
+<pre><code>## [1] &quot;list&quot;</code></pre>
+<pre class="r"><code>new_lm &lt;- function(coefficients, residuals, effects, rank, fitted.values, assign,
+                   qr, df.residual, xlevels, call, terms, model) {
+  stopifnot(is.character(coefficients), is.double(residuals), is.double(effects),
+            is.integer(rank), is.double(fitted.values), is.double(assign),
+            is.double(qr), is.double(df.residual), is.factor(xlevels), is.character(call),
+            is.list(terms), is.list(model))
+  
+  structure(list(coefficients = coefficients, residuals = residuals,
+                 effects = effects, rank = rank, fitted.values = fitted.values,
+                 assign = assign, qr = qr, df.residual = df.residual, xlevels = xlevels,
+                 call = call, terms = terms, model = model),
+            class = &quot;lm&quot;)
+}</code></pre>
 </div>
 </div>
 
