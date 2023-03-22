@@ -863,7 +863,7 @@ x</code></pre>
 <pre class="r"><code>mean</code></pre>
 <pre><code>## function (x, ...) 
 ## UseMethod(&quot;mean&quot;)
-## &lt;bytecode: 0x000001f43b90c1e8&gt;
+## &lt;bytecode: 0x000001881bd27228&gt;
 ## &lt;environment: namespace:base&gt;</code></pre>
 <pre class="r"><code>my_new_generic &lt;- function(x) {
   UseMethod(&quot;my_new_generic&quot;)
@@ -1135,6 +1135,367 @@ attributes(mod)</code></pre>
                  call = call, terms = terms, model = model),
             class = &quot;lm&quot;)
 }</code></pre>
+</div>
+</div>
+<div id="inheritance" class="section level1">
+<h1>13.6 Inheritance</h1>
+<ul>
+<li>the class can be a character vector</li>
+</ul>
+<pre class="r"><code>class(ordered(&quot;x&quot;))</code></pre>
+<pre><code>## [1] &quot;ordered&quot; &quot;factor&quot;</code></pre>
+<pre class="r"><code>class(Sys.time())</code></pre>
+<pre><code>## [1] &quot;POSIXct&quot; &quot;POSIXt&quot;</code></pre>
+<ul>
+<li>if a method is not found for the class in the first element, R will
+look for the method of the second class</li>
+</ul>
+<pre class="r"><code>s3_dispatch(print(ordered(&quot;x&quot;)))</code></pre>
+<pre><code>##    print.ordered
+## =&gt; print.factor
+##  * print.default</code></pre>
+<pre class="r"><code>s3_dispatch(print(Sys.time()))</code></pre>
+<pre><code>## =&gt; print.POSIXct
+##    print.POSIXt
+##  * print.default</code></pre>
+<ul>
+<li>a method delegates work by calling <code>NextMethod()</code>;
+delegation reported with <code>-&gt;</code></li>
+</ul>
+<pre class="r"><code>s3_dispatch(ordered(&quot;x&quot;)[1])</code></pre>
+<pre><code>##    [.ordered
+## =&gt; [.factor
+##    [.default
+## -&gt; [ (internal)</code></pre>
+<pre class="r"><code>s3_dispatch(Sys.time()[1])</code></pre>
+<pre><code>## =&gt; [.POSIXct
+##    [.POSIXt
+##    [.default
+## -&gt; [ (internal)</code></pre>
+<ul>
+<li><p>subclass: class that appears before another vs superclass: class
+that appears after another</p></li>
+<li><p>two principles when creating subclasses: base type of a subclass
+is the same of the superclass; attributes of subclass should be a
+superset of the attributes of the superclass</p></li>
+</ul>
+<div id="nextmethod" class="section level2">
+<h2>13.6.1 <code>NextMethod()</code></h2>
+<pre class="r"><code>new_secret &lt;- function(x = double()) {
+  stopifnot(is.double(x))
+  structure(x, class = &quot;secret&quot;)
+}
+
+print.secret &lt;- function(x, ...) {
+  print(strrep(&quot;x&quot;, nchar(x)))
+  invisible(x)
+}
+
+x &lt;- new_secret(c(15, 1, 456))
+x</code></pre>
+<pre><code>## [1] &quot;xx&quot;  &quot;x&quot;   &quot;xxx&quot;</code></pre>
+<pre class="r"><code># default [ does not preserve the class
+s3_dispatch(x[1])</code></pre>
+<pre><code>##    [.secret
+##    [.default
+## =&gt; [ (internal)</code></pre>
+<pre class="r"><code>x[1]</code></pre>
+<pre><code>## [1] 15</code></pre>
+<pre class="r"><code># create [.secret method; implementation creates a copy of x
+`[.secret` &lt;- function(x, i) {
+  x &lt;- unclass(x)
+  new_secret(x[i])
+}
+x[1]</code></pre>
+<pre><code>## [1] &quot;xx&quot;</code></pre>
+<pre class="r"><code>`[.secret` &lt;- function(x, i) {
+  new_secret(NextMethod())
+}
+x[1]</code></pre>
+<pre><code>## [1] &quot;xx&quot;</code></pre>
+<pre class="r"><code>s3_dispatch(x[1])</code></pre>
+<pre><code>## =&gt; [.secret
+##    [.default
+## -&gt; [ (internal)</code></pre>
+</div>
+<div id="allowing-subclassing" class="section level2">
+<h2>13.6.2 Allowing subclassing</h2>
+<ul>
+<li>allowing subclasses requires changing the constructor</li>
+</ul>
+<pre class="r"><code>new_secret &lt;- function(x, ..., class = character()) {
+  stopifnot(is.double(x))
+
+  structure(
+    x,
+    ...,
+    class = c(class, &quot;secret&quot;)
+  )
+}</code></pre>
+<pre class="r"><code>new_supersecret &lt;- function(x) {
+  new_secret(x, class = &quot;supersecret&quot;)
+}
+
+print.supersecret &lt;- function(x, ...) {
+  print(rep(&quot;xxxxx&quot;, length(x)))
+  invisible(x)
+}
+
+x2 &lt;- new_supersecret(c(15, 1, 456))
+x2</code></pre>
+<pre><code>## [1] &quot;xxxxx&quot; &quot;xxxxx&quot; &quot;xxxxx&quot;</code></pre>
+<pre class="r"><code>`[.secret` &lt;- function(x, ...) {
+  new_secret(NextMethod())
+}
+
+x2[1:3] # still returns a secret when x2 is supersecret</code></pre>
+<pre><code>## [1] &quot;xx&quot;  &quot;x&quot;   &quot;xxx&quot;</code></pre>
+<ul>
+<li>need to use <code>vctrs::restore()</code> to return the same class
+as <code>x</code> even if it is a subclass</li>
+</ul>
+<pre class="r"><code>vec_restore.secret &lt;- function(x, to, ...) new_secret(x)
+vec_restore.supersecret &lt;- function(x, to, ...) new_supersecret(x)</code></pre>
+<pre class="r"><code>`[.secret` &lt;- function(x, ...) {
+  vctrs::vec_restore(NextMethod(), x)
+}
+x2[1:3]</code></pre>
+<pre><code>## [1] &quot;xxxxx&quot; &quot;xxxxx&quot; &quot;xxxxx&quot;</code></pre>
+</div>
+<div id="exercises-4" class="section level2">
+<h2>13.6.3 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>How does <code>[.Date</code> support subclasses? How does it fail to
+support subclasses?</li>
+</ol>
+<pre class="r"><code>`[.Date` # can change class with oldClass(x)</code></pre>
+<pre><code>## function (x, ..., drop = TRUE) 
+## {
+##     .Date(NextMethod(&quot;[&quot;), oldClass(x))
+## }
+## &lt;bytecode: 0x000001881f8f87d8&gt;
+## &lt;environment: namespace:base&gt;</code></pre>
+<pre class="r"><code>`.Date` # does not allow for inheritance for subclassing since</code></pre>
+<pre><code>## function (xx, cl = &quot;Date&quot;) 
+## `class&lt;-`(xx, cl)
+## &lt;bytecode: 0x000001881f05d6c0&gt;
+## &lt;environment: namespace:base&gt;</code></pre>
+<pre class="r"><code>        # additional arguments cannot be supplied without ...</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>R has two classes for representing time data, <code>POSIXct</code>
+and <code>POSIXlt</code>, which both inherit from <code>POSIXt</code>.
+Which generics have different behaviors for the two classes? Which
+generics share the same behavior?</li>
+</ol>
+<pre class="r"><code>s3_methods_class(&quot;POSIXct&quot;)</code></pre>
+<pre><code>## # A tibble: 18 × 4
+##    generic       class   visible source             
+##    &lt;chr&gt;         &lt;chr&gt;   &lt;lgl&gt;   &lt;chr&gt;              
+##  1 [             POSIXct TRUE    base               
+##  2 [[            POSIXct TRUE    base               
+##  3 [&lt;-           POSIXct TRUE    base               
+##  4 as.data.frame POSIXct TRUE    base               
+##  5 as.Date       POSIXct TRUE    base               
+##  6 as.list       POSIXct TRUE    base               
+##  7 as.POSIXlt    POSIXct TRUE    base               
+##  8 c             POSIXct TRUE    base               
+##  9 format        POSIXct TRUE    base               
+## 10 length&lt;-      POSIXct TRUE    base               
+## 11 mean          POSIXct TRUE    base               
+## 12 print         POSIXct TRUE    base               
+## 13 rep           POSIXct TRUE    base               
+## 14 split         POSIXct TRUE    base               
+## 15 summary       POSIXct TRUE    base               
+## 16 Summary       POSIXct TRUE    base               
+## 17 weighted.mean POSIXct FALSE   registered S3method
+## 18 xtfrm         POSIXct TRUE    base</code></pre>
+<pre class="r"><code>s3_methods_class(&quot;POSIXlt&quot;)</code></pre>
+<pre><code>## # A tibble: 29 × 4
+##    generic       class   visible source
+##    &lt;chr&gt;         &lt;chr&gt;   &lt;lgl&gt;   &lt;chr&gt; 
+##  1 [             POSIXlt TRUE    base  
+##  2 [[            POSIXlt TRUE    base  
+##  3 [[&lt;-          POSIXlt TRUE    base  
+##  4 [&lt;-           POSIXlt TRUE    base  
+##  5 anyNA         POSIXlt TRUE    base  
+##  6 as.data.frame POSIXlt TRUE    base  
+##  7 as.Date       POSIXlt TRUE    base  
+##  8 as.double     POSIXlt TRUE    base  
+##  9 as.list       POSIXlt TRUE    base  
+## 10 as.matrix     POSIXlt TRUE    base  
+## # … with 19 more rows</code></pre>
+<pre class="r"><code># generics from both classes
+intersect(s3_methods_class(&quot;POSIXct&quot;)$generic, s3_methods_class(&quot;POSIXlt&quot;)$generic)</code></pre>
+<pre><code>##  [1] &quot;[&quot;             &quot;[[&quot;            &quot;[&lt;-&quot;           &quot;as.data.frame&quot;
+##  [5] &quot;as.Date&quot;       &quot;as.list&quot;       &quot;c&quot;             &quot;format&quot;       
+##  [9] &quot;length&lt;-&quot;      &quot;mean&quot;          &quot;print&quot;         &quot;rep&quot;          
+## [13] &quot;summary&quot;       &quot;Summary&quot;       &quot;weighted.mean&quot; &quot;xtfrm&quot;</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>What do you expect this code to return? What does it actually
+return? Why?</li>
+</ol>
+<pre class="r"><code>generic2 &lt;- function(x) UseMethod(&quot;generic2&quot;)
+generic2.a1 &lt;- function(x) &quot;a1&quot;
+generic2.a2 &lt;- function(x) &quot;a2&quot;
+generic2.b &lt;- function(x) {
+  class(x) &lt;- &quot;a1&quot;
+  NextMethod()
+}
+
+x &lt;- generic2(structure(list(), class = c(&quot;b&quot;, &quot;a2&quot;)))
+x</code></pre>
+<pre><code>## [1] &quot;a2&quot;</code></pre>
+<pre class="r"><code># would have expected a1 to be returned since the class is changed to
+# a1 in generic2.b(), but a2 is returned instead
+
+# Last paragraph from 13.6.1 describes the behavior but tldr is
+# changing the class will not affect which method gets called next
+# because its goverend by some external variable</code></pre>
+<pre class="r"><code>#s3_dispatch(x)</code></pre>
+</div>
+</div>
+<div id="dispatch-details" class="section level1">
+<h1>13.7 Dispatch details</h1>
+<div id="s3-and-base-types" class="section level2">
+<h2>13.7.1 S3 and base types</h2>
+<ul>
+<li>implicit classes have 3 components:</li>
+</ul>
+<ol style="list-style-type: decimal">
+<li><p>the string “array” or “matrix” if the object has
+dimensions</p></li>
+<li><p>the result of <code>typeof()</code></p></li>
+<li><p>the string “numeric” if the object is int or double</p></li>
+</ol>
+<pre class="r"><code>s3_class(matrix(1:5))</code></pre>
+<pre><code>## [1] &quot;matrix&quot;  &quot;integer&quot; &quot;numeric&quot;</code></pre>
+<pre class="r"><code>s3_dispatch(print(matrix(1:5)))</code></pre>
+<pre><code>##    print.matrix
+##    print.integer
+##    print.numeric
+## =&gt; print.default</code></pre>
+<pre class="r"><code># class() of an object does not uniquely determine its dispatch
+x1 &lt;- 1:5
+class(x1)</code></pre>
+<pre><code>## [1] &quot;integer&quot;</code></pre>
+<pre class="r"><code>s3_dispatch(mean(x1))</code></pre>
+<pre><code>##    mean.integer
+##    mean.numeric
+## =&gt; mean.default</code></pre>
+<pre class="r"><code>x2 &lt;- structure(x1, class = &quot;integer&quot;)
+class(x2)</code></pre>
+<pre><code>## [1] &quot;integer&quot;</code></pre>
+<pre class="r"><code>s3_dispatch(mean(x2))</code></pre>
+<pre><code>##    mean.integer
+## =&gt; mean.default</code></pre>
+</div>
+<div id="internal-generics" class="section level2">
+<h2>13.7.2 Internal generics</h2>
+<pre class="r"><code>s3_dispatch(Sys.time()[1])</code></pre>
+<pre><code>## =&gt; [.POSIXct
+##    [.POSIXt
+##    [.default
+## -&gt; [ (internal)</code></pre>
+</div>
+<div id="group-generics" class="section level2">
+<h2>13.7.3 Group generics</h2>
+<ul>
+<li><p>four types of group generics: math, ops, summary,
+complex</p></li>
+<li><p>defining a group generic for a class overrides the default
+behavior for all generics in the group</p></li>
+</ul>
+<pre class="r"><code>y &lt;- as.difftime(10, units = &quot;mins&quot;)
+s3_dispatch(abs(y))</code></pre>
+<pre><code>##    abs.difftime
+##    abs.default
+## =&gt; Math.difftime
+##    Math.default
+## -&gt; abs (internal)</code></pre>
+<pre class="r"><code>Math.difftime &lt;- function(x, ...) {
+  new_difftime(NextMethod(), units = attr(x, &quot;units&quot;))
+}</code></pre>
+</div>
+<div id="double-dispatch" class="section level2">
+<h2>13.7.4 Double dispatch</h2>
+<ul>
+<li>mainly used in two-argument arithmetic and Boolean operators,
+dispatch on both of the arguments</li>
+</ul>
+<pre class="r"><code>date &lt;- as.Date(&quot;2017-01-01&quot;)
+integer &lt;- 1L
+
+date + integer</code></pre>
+<pre><code>## [1] &quot;2017-01-02&quot;</code></pre>
+<pre class="r"><code>integer + date</code></pre>
+<pre><code>## [1] &quot;2017-01-02&quot;</code></pre>
+<ul>
+<li>use <code>vctrs::vec_arith</code> to implement robust double
+dispatch for algebraic operators</li>
+</ul>
+</div>
+<div id="exercises-5" class="section level2">
+<h2>13.7.5 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Explain the differences in dispatch below:</li>
+</ol>
+<pre class="r"><code>length.integer &lt;- function(x) 10
+
+x1 &lt;- 1:5
+class(x1)</code></pre>
+<pre><code>## [1] &quot;integer&quot;</code></pre>
+<pre class="r"><code>s3_dispatch(length(x1)) # used implicit class</code></pre>
+<pre><code>##  * length.integer
+##    length.numeric
+##    length.default
+## =&gt; length (internal)</code></pre>
+<pre class="r"><code>x2 &lt;- structure(x1, class = &quot;integer&quot;) # although both classes are called integer,
+class(x2)                              # the custom length.integer is used since it is not</code></pre>
+<pre><code>## [1] &quot;integer&quot;</code></pre>
+<pre class="r"><code>s3_dispatch(length(x2))                # a base type</code></pre>
+<pre><code>## =&gt; length.integer
+##    length.default
+##  * length (internal)</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>What classes have a method for the <code>Math</code> group generic
+in base R? Read the source code. How do the methods work?</li>
+</ol>
+<pre class="r"><code>s3_methods_generic(&quot;Math&quot;)</code></pre>
+<pre><code>## # A tibble: 8 × 4
+##   generic class      visible source             
+##   &lt;chr&gt;   &lt;chr&gt;      &lt;lgl&gt;   &lt;chr&gt;              
+## 1 Math    data.frame TRUE    base               
+## 2 Math    Date       TRUE    base               
+## 3 Math    difftime   TRUE    .GlobalEnv         
+## 4 Math    factor     TRUE    base               
+## 5 Math    POSIXt     TRUE    base               
+## 6 Math    quosure    FALSE   registered S3method
+## 7 Math    vctrs_sclr FALSE   registered S3method
+## 8 Math    vctrs_vctr FALSE   registered S3method</code></pre>
+<pre class="r"><code># From Math documentation:
+# Members of this group dispatch on x. Most members accept only one argument, 
+# but members log, round and signif accept one or two arguments, and trunc 
+# accepts one or more.</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li><code>Math.difftime()</code> is more complicated than I described.
+Why?</li>
+</ol>
+<pre class="r"><code>base::Math.difftime # has switch case to include abs, sign, floor, ceiling, and trunc</code></pre>
+<pre><code>## function (x, ...) 
+## {
+##     switch(.Generic, abs = , sign = , floor = , ceiling = , trunc = , 
+##         round = , signif = {
+##             units &lt;- attr(x, &quot;units&quot;)
+##             .difftime(NextMethod(), units)
+##         }, stop(gettextf(&quot;&#39;%s&#39; not defined for \&quot;difftime\&quot; objects&quot;, 
+##             .Generic), domain = NA))
+## }
+## &lt;bytecode: 0x000001881fdace48&gt;
+## &lt;environment: namespace:base&gt;</code></pre>
+<pre class="r"><code>Math.difftime</code></pre>
+<pre><code>## function(x, ...) {
+##   new_difftime(NextMethod(), units = attr(x, &quot;units&quot;))
+## }</code></pre>
 </div>
 </div>
 
