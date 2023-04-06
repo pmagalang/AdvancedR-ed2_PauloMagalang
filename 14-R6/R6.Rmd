@@ -1,0 +1,325 @@
+---
+title: 'Chapter 14: R6'
+author: "Paulo Magalang"
+date: "2023-03-31"
+output: html_document
+---
+
+# 14.1: Introduction
+
+* R6 objects are encapsulated and called as `object$method()`; objects
+are also mutable
+
+* similar to base OOP system called reference classes
+
+```{r}
+library(R6)
+```
+
+# 14.2 Classes and methods
+
+* `R6Class(classname, public)`
+
+* `classname` is optional but nice to have, use camel case by convention
+
+* `public`: list of methods and fields that make up the public interface
+of the object, snake case by convention; refer to methods and fields of current
+instance via `self$`
+
+```{r}
+Accumulator <- R6Class("Accumulator", list(
+  sum = 0,
+  add = function(x = 1) {
+    self$sum <- self$sum + x 
+    invisible(self)
+  })
+)
+```
+
+
+```{r}
+Accumulator
+```
+
+* initialize instance of object by calling `new()`
+
+```{r}
+x <- Accumulator$new()
+```
+
+```{r}
+x$add(4) 
+x$sum
+```
+
+## 14.2.1 Method chaining
+
+```{r}
+x$add(10)$add(10)$sum
+
+# for readability
+x$
+  add(10)$
+  add(10)$
+  sum
+```
+
+## 14.2.2 Important methods
+
+* important methods that should be defined for all classes: `$initialize()` and `$print()`
+
+```{r}
+Person <- R6Class("Person", list(
+  name = NULL,
+  age = NA,
+  initialize = function(name, age = NA) { # overrides $new()
+    stopifnot(is.character(name), length(name) == 1)
+    stopifnot(is.numeric(age), length(age) == 1)
+    
+    self$name <- name
+    self$age <- age
+  }
+))
+
+#hadley <- Person$new("Hadley", age = "thirty-eight")
+
+hadley <- Person$new("Hadley", age = 38)
+```
+
+
+```{r}
+Person <- R6Class("Person", list(
+  name = NULL,
+  age = NA,
+  initialize = function(name, age = NA) {
+    self$name <- name
+    self$age <- age
+  },
+  print = function(...) { # overrides default printing behavior
+    cat("Person: \n")
+    cat("  Name: ", self$name, "\n", sep = "")
+    cat("  Age:  ", self$age, "\n", sep = "")
+    invisible(self)
+  }
+))
+
+hadley2 <- Person$new("Hadley")
+hadley2
+```
+
+## 14.2.3 Adding methods after creation
+
+* add elements to class with `$set()`
+
+```{r}
+Accumulator <- R6Class("Accumulator")
+Accumulator$set("public", "sum", 0)
+Accumulator$set("public", "add", function(x = 1) {
+  self$sum <- self$sum + x 
+  invisible(self)
+})
+```
+
+## 14.2.4 Inheritance
+
+```{r}
+AccumulatorChatty <- R6Class("AccumulatorChatty", 
+  inherit = Accumulator,
+  public = list(
+    add = function(x = 1) {
+      cat("Adding ", x, "\n", sep = "")
+      super$add(x = x)
+    }
+  )
+)
+
+x2 <- AccumulatorChatty$new()
+x2$add(10)$add(1)$sum
+```
+
+## 14.2.5 Introspection
+
+```{r}
+class(hadley2)
+names(hadley2)
+```
+
+## 14.2.6 Exercises
+
+1. Create a bank account R6 class that stores a balance and allows you to deposit and withdraw
+money. Create a subclass that throws an error if you attempt to overdraft. Create another
+subclass that allows you to go into overdraft, but charges you a fee.
+
+```{r}
+BankAccount <- R6Class("BankAccount", public = list(
+  balance = 0,
+  
+  initialize = function(balance = 0) {
+    stopifnot(is.numeric(balance))
+    self$balance <- balance
+  },
+  
+  deposit = function(deposit) {
+    self$balance <- self$balance + deposit
+    invisible(self)
+  },
+  
+  withdraw = function(withdraw) {
+    self$balance <- self$balance - withdraw
+    invisible(self)
+  },
+  
+  print = function(...) {
+    cat("Current balance: ", self$balance)
+  })
+)
+```
+
+```{r}
+my_acct <- BankAccount$new(100)
+my_acct$deposit(10)$balance
+my_acct
+```
+
+```{r}
+BankAccountStrict <- R6Class("BankAccountStrict",
+  inherit = BankAccount,
+  public = list(
+    withdraw = function(withdraw) {
+      if(self$balance - withdraw < 0) {
+        stop("You are broke.")
+      }
+      super$withdraw(withdraw)
+    }
+  )
+)
+```
+
+```{r}
+broke_acct <- BankAccountStrict$new(10)
+#broke_acct$withdraw(100)
+```
+
+```{r}
+BankAccountOverdraft <- R6Class("BankAccountOverdraft",
+  inherit = BankAccount,
+  public = list(
+    withdraw = function(withdraw) {
+      if(self$balance - withdraw < 0) {
+        message("$10 charge added for overdraft.")
+      }
+      super$withdraw(withdraw + 10)
+    }
+  )
+)
+```
+
+```{r}
+overdraft_acct <- BankAccountOverdraft$new(0)
+overdraft_acct$withdraw(100)
+overdraft_acct
+```
+
+2. Create an R6 class that represents a shuffled deck of cards. You should be able to
+draw cards from the deck with `$draw(n)` and return all cards to the deck and reshuffle
+with `$reshuffle()`. Use the following code to make a vector of cards.
+
+```{r}
+suit <- c("♠", "♥", "♦", "♣")
+value <- c("A", 2:10, "J", "Q", "K")
+cards <- paste0(rep(value, 4), suit)
+length(cards)
+```
+
+```{r}
+Deck <- R6Class("Deck", public = list(
+  cards = NULL,
+  randomizer = NULL,
+  index = 1,
+  initialize = function(...) {
+    suit <- c("♠", "♥", "♦", "♣")
+    value <- c("A", 2:10, "J", "Q", "K")
+    cards <- paste0(rep(value, 4), suit)
+    
+    self$cards <- cards
+    self$randomizer <- sample(1:52, size = 52, replace = F)
+  },
+  draw = function(n) {
+    # check if there are enough cards
+    if (self$index + n - 1 > 52) {
+      stop("There are not enough cards.")
+    }
+    
+    hand <- cards[randomizer[self$index:(self$index + n - 1)]]
+    self$index <- self$index + n
+    hand
+  },
+  reshuffle = function(...) {
+    self$randomizer <- sample(1:52, size = 52, replace = F)
+    self$index <- 1
+    invisible(self)
+  })
+)
+```
+
+3. Why can't you model a bank account or a deck of cards with an S3 class?
+
+R6 objects are mutable while S3 objects exhibit copy on modify behavior.
+
+4. Create an R6 class that allows you to get and set the current time zone. You
+can access the current time zone with `Sys.timezone()` and set with `Sys.setenv(TZ = "newtimezone")`.
+When setting the time zone, make sure the new time zone is in the list provided by `OlsonNames()`
+
+```{r}
+TimeZone <- R6Class("TimeZone", public = list(
+  current_timezone = NULL,
+  initialize = function(tz = Sys.timezone()) {
+    self$current_timezone <- tz
+  },
+  get_timezone = function(...) {
+    cat("Current time zone:", self$current_timezone)
+  },
+  set_timezone = function(tz) {
+    # validation
+    stopifnot(is.character(tz), tz %in% OlsonNames())
+    
+    Sys.setenv(TZ = tz)
+    self$current_timezone <- tz
+    invisible(self)
+  })
+)
+```
+
+
+5. Create an R6 class that manages the current working directory. It should have
+`$get()` and `$set()` methods.
+
+```{r}
+WorkingDirectory <- R6Class("WorkingDirectory", public = list(
+  get = function(...) {
+    getwd()
+  },
+  set = function(dir) {
+    stopifnot(dir.exists(dir), is.character(dir))
+    setwd(dir)
+  })
+)
+```
+
+6. Why can't you model the time zone or current working directory with an S3 class?
+
+7. What base type are R6 objects built on top of? What attributes do they have?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
