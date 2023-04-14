@@ -311,6 +311,363 @@ WorkingDirectory <- R6Class("WorkingDirectory", public = list(
 7. What base type are R6 objects built on top of? What attributes do they have?
 
 
+# 14.3 Controlling access
+
+* `private`: create fields and methods that are available within the class
+
+* `active`: use accessor functions to define dynamic fields
+
+## 14.3.1 Privacy
+
+* `private` argument works similarly to `public`
+
+* fields and methods are accessed using `private$` instead of `self$`
+
+```{r}
+Person <- R6Class("Person", 
+  public = list(
+    initialize = function(name, age = NA) {
+      private$name <- name
+      private$age <- age
+    },
+    print = function(...) {
+      cat("Person: \n")
+      cat("  Name: ", private$name, "\n", sep = "")
+      cat("  Age:  ", private$age, "\n", sep = "")
+    }
+  ),
+  private = list(
+    age = NA,
+    name = NULL
+  )
+)
+
+hadley3 <- Person$new("Hadley")
+hadley3
+hadley3$name # would be Hadley if was not a private field
+```
+
+## 14.3.2 Active fields
+
+* active fields define components that look like fields but are defined with functions;
+implemented with active bindings
+
+```{r}
+Rando <- R6::R6Class("Rando", active = list(
+  random = function(value) {
+    if (missing(value)) {
+      runif(1)  
+    } else {
+      stop("Can't set `$random`", call. = FALSE)
+    }
+  }
+))
+x <- Rando$new()
+x$random
+x$random
+x$random
+```
+
+* active fields useful with private fields
+
+```{r}
+Person <- R6Class("Person", 
+  private = list(
+    .age = NA,
+    .name = NULL
+  ),
+  active = list(
+    age = function(value) {
+      if (missing(value)) {
+        private$.age
+      } else {
+        stop("`$age` is read only", call. = FALSE)
+      }
+    },
+    name = function(value) {
+      if (missing(value)) {
+        private$.name
+      } else {
+        stopifnot(is.character(value), length(value) == 1)
+        private$.name <- value
+        self
+      }
+    }
+  ),
+  public = list(
+    initialize = function(name, age = NA) {
+      private$.name <- name
+      private$.age <- age
+    }
+  )
+)
+
+hadley4 <- Person$new("Hadley", age = 38)
+hadley4$name
+#hadley4$name <- 10
+hadley4$name <- "Had"
+hadley4$name
+
+#hadley4$age <- 20
+```
+
+## 14.3.3 Exercises
+
+1. Create a bank account class that prevents you from directly setting the account balance,
+but you can still withdraw from and deposit to. Throw an error if you attempt to go into
+overdraft.
+
+```{r}
+BankAccountPrivate <- R6Class("BankAccountPrivate", 
+  public = list(
+    initialize = function(balance = 0) {
+      private$balance <- balance
+    },
+    deposit = function(dep) {
+      private$balance <- private$balance + dep
+      invisible(self)
+    },
+    withdraw = function(draw) {
+      if (private$balance - draw < 0) {
+        stop("You are broke.")
+      }
+      private$balance <- private$balance - draw
+      invisible(self)
+    }
+  ),
+  private = list(
+    balance = NULL
+  )
+)
+```
+
+2. Create a class with a write-only `$password` field. It should have `$check_password(password)`
+method that returns `TRUE` or `FALSE`, but there should be no way to view the complete password.
+
+```{r}
+Password <- R6Class("Password",
+  public = list(
+    initialize = function(password) {
+      if (missing(password)) {
+        stop("Password missing.")
+      } else {
+        private$password <- password
+      }
+    },
+    check_password = function(password) {
+      return(private$password == password)
+    }
+  ),
+  private = list(
+    password = NULL
+  )
+)
+```
+
+3. Extend the `Rando` class with another active binding that allows you to access the previous
+random value. Ensure that active binding is the only way to access the value.
+
+```{r}
+Rando <- R6::R6Class("Rando", 
+  active = list(
+    random = function(value) {
+      if (missing(value)) {
+        if (is.na(private$current_value)) {
+          private$current_value <- runif(1)
+          private$current_value
+        } else {
+          private$prev_value <- private$current_value
+          private$current_value <- runif(1)
+          private$current_value
+        }
+      } else {
+        stop("Can't set `$random`", call. = FALSE)
+      }
+    },
+    prev_random = function() {
+      if (missing(value)) {
+        private$prev_value
+      } else {
+        stop("Can't set `$prev_random`", call. = FALSE)
+      }
+    }
+  ),
+  private = list(
+    prev_value = NA,
+    current_value = NA
+  )
+)
+```
+
+4. Can subclasses access private fields/methods from their parent? Perform an experiment
+to find out.
+
+```{r}
+Class <- R6::R6Class("Class",
+  private = list(
+    private_field = "This is the private field.",
+    private_method = function() {
+      "This is the private method."
+    }
+  )
+)
+
+OtherClass <- R6::R6Class("OtherClass",
+  inherit = Class,
+  public = list(
+    return_superclass_priv = function() {
+      priv_field <- super$private_field
+      priv_method <- super$private_method()
+      
+      cat(priv_field)
+      cat(priv_method)
+    }
+  )
+)
+
+OtherClass$new()$return_superclass_priv()
+```
+
+# 14.4 Reference semantics
+
+* R6 objects are not copied when modified
+
+```{r}
+y1 <- Accumulator$new() 
+y2 <- y1
+
+y1$add(10)
+c(y1 = y1$sum, y2 = y2$sum)
+```
+
+```{r}
+y1 <- Accumulator$new() 
+y2 <- y1$clone() # use $clone() to copy an object
+
+y1$add(10)
+c(y1 = y1$sum, y2 = y2$sum)
+```
+
+## 14.4.1 Reasoning
+
+```{r, eval = FALSE}
+x <- list(a = 1)
+y <- list(b = 2)
+
+z <- f(x, y)
+```
+
+```{r, eval = FALSE}
+x <- List$new(a = 1)
+y <- List$new(b = 2)
+
+z <- f(x, y)
+# write functions that return a value or modify R6 inputs, not both simultaneously
+```
+
+## 14.4.2 Finalizer
+
+* `$finalize()` complements `$initialize()`; similar role to `on.exit()`
+
+```{r}
+TemporaryFile <- R6::R6Class("TemporaryFile", list(
+  path = NULL,
+  initialize = function() {
+    self$path <- tempfile()
+  },
+  finalize = function() {
+    message("Cleaning up ", self$path)
+    unlink(self$path)
+  }
+))
+```
+
+```{r}
+tf <- TemporaryFile$new()
+rm(tf)
+```
+
+## 14.4.3 R6 fields
+
+* if an R6 class is used as a default value of a field, it will be shared across
+all instances of the object
+
+```{r}
+TemporaryDatabase <- R6::R6Class("TemporaryDatabase", list(
+  con = NULL,
+  file = TemporaryFile$new(), # same instance
+  initialize = function() {
+    self$con <- DBI::dbConnect(RSQLite::SQLite(), path = file$path)
+  },
+  finalize = function() {
+    DBI::dbDisconnect(self$con)
+  }
+))
+
+db_a <- TemporaryDatabase$new()
+db_b <- TemporaryDatabase$new()
+
+db_a$file$path == db_b$file$path
+```
+
+```{r}
+TemporaryDatabase <- R6::R6Class("TemporaryDatabase", list(
+  con = NULL,
+  file = NULL,
+  initialize = function() {
+    self$file <- TemporaryFile$new() # new instance created
+    self$con <- DBI::dbConnect(RSQLite::SQLite(), path = file$path)
+  },
+  finalize = function() {
+    DBI::dbDisconnect(self$con)
+  }
+))
+
+db_a <- TemporaryDatabase$new()
+db_b <- TemporaryDatabase$new()
+
+db_a$file$path == db_b$file$path
+```
+
+## 14.4.4 Exercises
+
+1. Create a class that allows you to write a line to a specified file. You should
+open a connection to the file in `$initialize()`, append a line using `cat()` in
+`$append_line()`, and close the connection in `$finalize()`.
+
+```{r}
+AppendFile <- R6::R6Class("AppendFile", 
+  public = list(
+    file = NA,
+    intialize = function(filename) {
+      self$file <- open(filename)
+    },
+    appendline = function(string) {
+      if (is.na(self$file)) {
+        stop("No open connection to file.")
+      }
+      cat(string, file = self$file, append = TRUE)
+    },
+    finalize = function() {
+      close(self$file)
+    }
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
