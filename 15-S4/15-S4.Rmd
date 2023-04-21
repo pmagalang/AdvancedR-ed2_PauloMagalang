@@ -1,0 +1,278 @@
+---
+title: 'Chapter 15: S4'
+author: "Paulo Magalang"
+date: "2023-04-20"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+# 15.1 Introduction
+
+* slot: a named component of S4 objects, use `@` as subsetting operator
+
+* no one reference that has all S4 QandA; sometimes clashes with base R best
+practices
+
+```{r}
+library(methods) # available for most of the time, but no harm no foul
+```
+
+# 15.2 Basics
+
+* define S4 classes with `setClass()`
+
+```{r}
+setClass("Person", 
+  slots = c(
+    name = "character", 
+    age = "numeric"
+  )
+)
+```
+
+* construct new objects with `new()`
+
+```{r}
+john <- new("Person", name = "John Smith", age = NA_real_)
+
+is(john)
+john@name
+slot(john, "age")
+```
+
+* try not to use `@` when using other people's classes, look for accessor functions
+(getters and setters)
+
+```{r}
+# create getter and setter
+setGeneric("age", function(x) standardGeneric("age"))
+setGeneric("age<-", function(x, value) standardGeneric("age<-"))
+
+# define those methods with setMethod()
+setMethod("age", "Person", function(x) x@age)
+setMethod("age<-", "Person", function(x, value) {
+  x@age <- value
+  x
+})
+
+age(john) <- 50
+age(john)
+```
+
+```{r}
+sloop::otype(john)
+sloop::ftype(age)
+```
+
+## 15.2.1 Exercises
+
+1. `lubridate::period()` returns an S4 class. What slots does it have? What class
+is each slot? What accessors does it provide?
+
+```{r}
+sloop::otype(lubridate::period())
+
+str(lubridate::period())
+#methods?lubridate::period()
+```
+
+2. What other ways can you find help for a method? Read `?"?"` and summarize the details.
+
+* `methods?generic` # look for all methods
+
+* `method?generic(args)` # docs for specific method
+
+
+# 15.3 Classes
+
+* need three args for `setClass()`: name, slots, prototype
+
+```{r}
+setClass("Person", 
+  slots = c(
+    name = "character", 
+    age = "numeric"
+  ), 
+  prototype = list(
+    name = NA_character_,
+    age = NA_real_
+  )
+)
+
+me <- new("Person", name = "Hadley")
+str(me)
+```
+
+## 15.3.1 Inheritance
+
+* `contains`: specifies a class to inherit slots and behavior from
+
+```{r}
+setClass("Employee", 
+  contains = "Person", 
+  slots = c(
+    boss = "Person"
+  ),
+  prototype = list(
+    boss = new("Person")
+  )
+)
+
+str(new("Employee"))
+```
+
+## 15.3.2 Introspetion
+
+* use `is()` to determine what classes an object inehrits from
+
+```{r}
+is(new("Person"))
+is(new("Employee"))
+is(john, "Person")
+```
+
+## 15.3.3 Redefinition
+
+```{r}
+setClass("A", slots = c(x = "numeric"))
+a <- new("A", x = 10)
+
+#setClass("A", slots = c(a_different_slot = "numeric"))
+#a
+```
+
+## 15.3.4 Helper
+
+* helper functions: have same name as class; UX centered; finish by calling
+`methods::new()`
+
+```{r}
+Person <- function(name, age = NA) {
+  age <- as.double(age)
+  
+  new("Person", name = name, age = age)
+}
+
+Person("Hadley")
+```
+
+## 15.3.5 Validator
+
+```{r}
+Person("Hadley", age = c(30, 37)) # age is vector length 2; doesnt make sense
+```
+
+```{r}
+# enforce using validator
+setValidity("Person", function(object) {
+  if (length(object@name) != length(object@age)) {
+    "@name and @age must be same length"
+  } else {
+    TRUE
+  }
+})
+```
+
+```{r}
+# Person("Hadley", age = c(30, 37))
+```
+
+## 15.3.6 Exercises
+
+1. Extend the person class with fields to match `utils::person()`. Think about what
+slots you need, what class each shot should have, and what you'll need to check
+in your validity method.
+
+```{r}
+setClass("Person", 
+  slots = c(
+    name = "character", 
+    age = "numeric",
+    email = "character",
+    role = "character"
+  ), 
+  prototype = list(
+    name = NA_character_,
+    age = NA_real_,
+    email = NA_character_,
+    role = NA_character_
+  )
+)
+
+setValidity("Person", function(object) {
+  if (length(object@name) != 1 | length(object@age) != 1 | length(object@email != 1)) {
+    "@name, @age, and @email must be the same length"
+  } else if (sum(object@roles %in% c("aut", "com", "cph", "cre", "ctb", "ctr", "dtc", "fnd", "rev", "ths", "trl")) != length(object@roles)) {
+    "must be valid roles in @roles"
+  } else {
+    TRUE
+  }
+})
+```
+
+2. What happens if you define a new S4 class that doesn't have any slots? (Hint:
+read about virtual classes in `?setClass`.)
+
+A virtual class is created. Not sure how they can be used or are useful.
+
+3. Imagine you were going to reimplement factors, dates, and data frames in S4. Sketch
+out the `setClass()` calls that you would use to define the classes. Think about appropriate
+`slots` and `prototype`.
+
+```{r}
+setClass("Factor",
+  slots = c(
+    data = "integer",
+    levels = "character"),
+  prototype = list(
+    data = NA_integer_,
+    levels = NA_character_)
+)
+```
+
+```{r}
+setClass("Dates",
+  slots = c(
+    date = "integer"
+    ),
+  prototype = list(
+    date = NA_integer_
+  )
+)
+```
+
+```{r}
+setClass("DataFrame",
+  slots = c(
+    data = "list",
+    row.names = "character"
+    ),
+  prototype = list(
+    data = list(),
+    row.names = NA_character_
+  )
+)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
