@@ -185,7 +185,7 @@ slots you need, what class each shot should have, and what you'll need to check
 in your validity method.
 
 ```{r}
-setClass("Person", 
+setClass("Person2", 
   slots = c(
     name = "character", 
     age = "numeric",
@@ -200,7 +200,7 @@ setClass("Person",
   )
 )
 
-setValidity("Person", function(object) {
+setValidity("Person2", function(object) {
   if (length(object@name) != 1 | length(object@age) != 1 | length(object@email != 1)) {
     "@name, @age, and @email must be the same length"
   } else if (sum(object@roles %in% c("aut", "com", "cph", "cre", "ctb", "ctr", "dtc", "fnd", "rev", "ths", "trl")) != length(object@roles)) {
@@ -256,11 +256,310 @@ setClass("DataFrame",
 
 ```
 
+# 15.4 Generics and methods
+
+```{r}
+# create S4 generic with setGeneric() that calls standardGeneric()
+setGeneric("myGeneric", function(x) standardGeneric("myGeneric"))
+```
+
+* bad practice to use `{}` with `setGeneric()`
+
+## 15.4.1 Signature
+
+* `signature` allows user to control arguments that are used for method dispatch;
+if not supplied, all args are used
+
+```{r}
+setGeneric("myGeneric", 
+  function(x, ..., verbose = TRUE) standardGeneric("myGeneric"),
+  signature = "x" # only use x
+)
+```
+
+## 15.4.2 Methods
+
+* S4 methods defined with `setMethod()`: need to define name of generic, name of
+class, and method
+
+```{r, eval = FALSE}
+setMethod("myGeneric", "Person", function(x) {
+  # method implementation
+})
+```
+
+* second argument in `setMethod()` is the signature
+
+* `methods("generic")` or `methods(class = "class")` to list methods that
+belong to a generic or associated with a class
+
+* `selectMethod("generic", "class")` to find the implementation of a specific
+method
+
+## 15.4.3 Show method
+
+* `show()` controls how an object appears when printed
+
+```{r}
+args(getGeneric("show"))
+```
+
+```{r}
+setMethod("show", "Person", function(object) {
+  cat(is(object)[[1]], "\n",
+      "  Name: ", object@name, "\n",
+      "  Age:  ", object@age, "\n",
+      sep = ""
+  )
+})
+john
+```
+
+## 15.4.4 Accessors
+
+* accessors return user-accessible slots
+
+```{r}
+person_name <- function(x) x@name
+```
+
+```{r}
+setGeneric("name", function(x) standardGeneric("name"))
+setMethod("name", "Person", function(x) x@name)
+
+name(john)
+```
+
+* also provide a setter function if the slot is writable
+
+```{r}
+setGeneric("name<-", function(x, value) standardGeneric("name<-"))
+setMethod("name<-", "Person", function(x, value) {
+  x@name <- value
+  validObject(x) # check if x is a valid object
+  x
+})
+
+name(john) <- "Jon Smythe"
+name(john)
+
+#name(john) <- letters
+```
+
+## 15.4.5 Exercises
+
+1. Add `age()` accessors for the `Person` class.
+
+```{r}
+setGeneric("age", function(x) standardGeneric("age"))
+setMethod("age", "Person", function(x) x@age)
+
+age(john)
+```
 
 
+2. In the definition of the generic, why is it necessary to repeat the name
+of the generic twice?
 
+`setGeneric()` creates the generic of the function while `standardGeneric`
+initiates method dispatch.
 
+3. Why does the `show()` method defined in Section 15.4.3 use `is(object)[[1]]`?
+(Hint: try printing the employee subclass.)
 
+```{r}
+is(new("Employee"))
+
+# if a subclass is provided, the class it inherits from is also printed
+# take is(new("Employee"))[[1]] to ensure the subclass is only checked for
+```
+
+4. What happens if you define a method with different argument names to the generic?
+
+```{r}
+setClass("Person3", 
+  slots = c(
+    name = "character", 
+    age = "numeric"
+  ), 
+  prototype = list(
+    name = NA_character_,
+    age = NA_real_
+  )
+)
+```
+
+```{r}
+setGeneric("introduce", 
+  function(x) standardGeneric("introduce")
+)
+
+setMethod("introduce", "Person3", function(x) {
+  cat("My name is", x@name, "and I am", x@age, "years old.")
+})
+
+hadley <- new("Person3", name = "Hadley", age = 999)
+introduce(hadley)
+```
+
+```{r}
+setGeneric("introduce2", 
+  function(x) standardGeneric("introduce2")
+)
+
+setMethod("introduce2", "Person3", function(obj) {
+  cat("My name is", obj@name, "and I am", obj@age, "years old.")
+})
+
+hadley2 <- new("Person3", name = "Hadley", age = 999)
+introduce2(hadley)
+# a warning is produced
+```
+
+# 15.5 Method dispatch
+
+* S4 important features: multiple inheritance and multiple dispatch
+
+* recommended to keep dispatch simple by avoiding multiple inheritance and
+using multiple dispatch when absolutely necessary
+
+## 15.5.1 Single dispatch
+
+* `f(...)` defines scope (ie: `f(;P -> ;0 -> :0)`)
+
+* method graph displays all possible methods that can be defined
+(ie: ;P -> ;0 -> | :0 | ), where emoji in | has been defined with
+`setMethod()`
+
+* least general class -> most general class; if no method is found, method
+dispatch fails and error is thrown
+
+* always define methods for terminal nodes! (most general classes)
+
+* pseudo-classes don't exist but allow to define useful behaviors
+
+- `ANY` matches to any class (link to `ANY` is longer than links between
+other classes)
+
+- ie: ;P -> ;0 -> :0 ---> ANY
+
+- `MISSING` matches whenever the argument is missing; important for
+`+` and `-` that use double dispatch
+
+## 15.5.2 Multiple inheritance
+
+* `f(B) -> B)` & `f(B) -> :) -> :0)`
+
+* closest method is selected when finding multiple methods
+
+* actual details in multiple inheritance in S4 in `?Methods_Details`
+
+* when methods are the same distance, it is an ambiguous method
+(drawn with || B) ||); ambiguity is resolved by providing more
+precise methods
+
+* `ANY` will never contribute to ambiguity since it is further away
+
+## 15.5.5 Exercises
+
+1. lol no
+
+2. no thanks
+
+3. nope
+
+# 15.6 S4 and S3
+
+## 15.6.1 Classes
+
+* `slots` and `contains` can use S4, S3, or implicit classes
+
+* must register with `setOldClass()` if using S3 class
+
+```{r}
+setOldClass("data.frame")
+setOldClass(c("ordered", "factor"))
+setOldClass(c("glm", "lm"))
+```
+
+```{r}
+# better to provide full S4 definition
+setClass("factor",
+  contains = "integer",
+  slots = c(
+    levels = "character"
+  ),
+  prototype = structure(
+    integer(),
+    levels = character()
+  )
+)
+setOldClass("factor", S4Class = "factor")
+```
+
+* if S4 object inherits from S3 class, has `.Data` virtual slot
+
+```{r}
+RangedNumeric <- setClass(
+  "RangedNumeric",
+  contains = "numeric",
+  slots = c(min = "numeric", max = "numeric"),
+  prototype = structure(numeric(), min = NA_real_, max = NA_real_)
+)
+rn <- RangedNumeric(1:10, min = 1, max = 10)
+rn@min
+rn@.Data
+```
+
+## 15.6.2 Generics
+
+* can convert S3 generics to S4 generic
+
+```{r}
+setGeneric("mean")
+selectMethod("mean", "ANY") # existing method becomes default method
+```
+
+## 15.6.3 Exercises
+
+1. What would a full `setOldClass()` definition look like for an
+ordered factor (ie: add `slots` and `prototype` the definition above)?
+
+```{r}
+Factor <- setClass(
+  "Factor",
+  contains = "factor",
+  slots = c(levels = "character"),
+  prototype = structure(integer(), levels = character())
+)
+```
+
+2. Define a `length` method for the `Person` class.
+
+```{r, eval = FALSE}
+setClass("Person4", 
+  slots = c(
+    name = "character", 
+    age = "numeric",
+    length = "numeric"
+  ), 
+  prototype = list(
+    name = NA_character_,
+    age = NA_real_,
+    length = NA_real_
+  )
+)
+
+setGeneric("length", function(x) standardGeneric("length"))
+setMethod("length", "Person4", function(x) x@length)
+
+setGeneric("length<-", function(x, value) standardGeneric("length<-"))
+setMethod("length<-", "Person4", function(x, value) {
+  x@length <- value
+  validObject(x) # check if x is a valid object
+  x
+})
+```
 
 
 

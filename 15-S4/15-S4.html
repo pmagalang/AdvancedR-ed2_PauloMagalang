@@ -563,7 +563,7 @@ setValidity(&quot;Person&quot;, function(object) {
 class each shot should have, and what you’ll need to check in your
 validity method.</li>
 </ol>
-<pre class="r"><code>setClass(&quot;Person&quot;, 
+<pre class="r"><code>setClass(&quot;Person2&quot;, 
   slots = c(
     name = &quot;character&quot;, 
     age = &quot;numeric&quot;,
@@ -578,7 +578,7 @@ validity method.</li>
   )
 )
 
-setValidity(&quot;Person&quot;, function(object) {
+setValidity(&quot;Person2&quot;, function(object) {
   if (length(object@name) != 1 | length(object@age) != 1 | length(object@email != 1)) {
     &quot;@name, @age, and @email must be the same length&quot;
   } else if (sum(object@roles %in% c(&quot;aut&quot;, &quot;com&quot;, &quot;cph&quot;, &quot;cre&quot;, &quot;ctb&quot;, &quot;ctr&quot;, &quot;dtc&quot;, &quot;fnd&quot;, &quot;rev&quot;, &quot;ths&quot;, &quot;trl&quot;)) != length(object@roles)) {
@@ -587,7 +587,7 @@ setValidity(&quot;Person&quot;, function(object) {
     TRUE
   }
 })</code></pre>
-<pre><code>## Class &quot;Person&quot; [in &quot;.GlobalEnv&quot;]
+<pre><code>## Class &quot;Person2&quot; [in &quot;.GlobalEnv&quot;]
 ## 
 ## Slots:
 ##                                               
@@ -632,6 +632,319 @@ would use to define the classes. Think about appropriate
     row.names = NA_character_
   )
 )</code></pre>
+</div>
+</div>
+<div id="generics-and-methods" class="section level1">
+<h1>15.4 Generics and methods</h1>
+<pre class="r"><code># create S4 generic with setGeneric() that calls standardGeneric()
+setGeneric(&quot;myGeneric&quot;, function(x) standardGeneric(&quot;myGeneric&quot;))</code></pre>
+<pre><code>## [1] &quot;myGeneric&quot;</code></pre>
+<ul>
+<li>bad practice to use <code>{}</code> with
+<code>setGeneric()</code></li>
+</ul>
+<div id="signature" class="section level2">
+<h2>15.4.1 Signature</h2>
+<ul>
+<li><code>signature</code> allows user to control arguments that are
+used for method dispatch; if not supplied, all args are used</li>
+</ul>
+<pre class="r"><code>setGeneric(&quot;myGeneric&quot;, 
+  function(x, ..., verbose = TRUE) standardGeneric(&quot;myGeneric&quot;),
+  signature = &quot;x&quot; # only use x
+)</code></pre>
+<pre><code>## [1] &quot;myGeneric&quot;</code></pre>
+</div>
+<div id="methods" class="section level2">
+<h2>15.4.2 Methods</h2>
+<ul>
+<li>S4 methods defined with <code>setMethod()</code>: need to define
+name of generic, name of class, and method</li>
+</ul>
+<pre class="r"><code>setMethod(&quot;myGeneric&quot;, &quot;Person&quot;, function(x) {
+  # method implementation
+})</code></pre>
+<ul>
+<li><p>second argument in <code>setMethod()</code> is the
+signature</p></li>
+<li><p><code>methods(&quot;generic&quot;)</code> or
+<code>methods(class = &quot;class&quot;)</code> to list methods that belong to a
+generic or associated with a class</p></li>
+<li><p><code>selectMethod(&quot;generic&quot;, &quot;class&quot;)</code> to find the
+implementation of a specific method</p></li>
+</ul>
+</div>
+<div id="show-method" class="section level2">
+<h2>15.4.3 Show method</h2>
+<ul>
+<li><code>show()</code> controls how an object appears when printed</li>
+</ul>
+<pre class="r"><code>args(getGeneric(&quot;show&quot;))</code></pre>
+<pre><code>## function (object) 
+## NULL</code></pre>
+<pre class="r"><code>setMethod(&quot;show&quot;, &quot;Person&quot;, function(object) {
+  cat(is(object)[[1]], &quot;\n&quot;,
+      &quot;  Name: &quot;, object@name, &quot;\n&quot;,
+      &quot;  Age:  &quot;, object@age, &quot;\n&quot;,
+      sep = &quot;&quot;
+  )
+})
+john</code></pre>
+<pre><code>## Person
+##   Name: John Smith
+##   Age:  50</code></pre>
+</div>
+<div id="accessors" class="section level2">
+<h2>15.4.4 Accessors</h2>
+<ul>
+<li>accessors return user-accessible slots</li>
+</ul>
+<pre class="r"><code>person_name &lt;- function(x) x@name</code></pre>
+<pre class="r"><code>setGeneric(&quot;name&quot;, function(x) standardGeneric(&quot;name&quot;))</code></pre>
+<pre><code>## [1] &quot;name&quot;</code></pre>
+<pre class="r"><code>setMethod(&quot;name&quot;, &quot;Person&quot;, function(x) x@name)
+
+name(john)</code></pre>
+<pre><code>## [1] &quot;John Smith&quot;</code></pre>
+<ul>
+<li>also provide a setter function if the slot is writable</li>
+</ul>
+<pre class="r"><code>setGeneric(&quot;name&lt;-&quot;, function(x, value) standardGeneric(&quot;name&lt;-&quot;))</code></pre>
+<pre><code>## [1] &quot;name&lt;-&quot;</code></pre>
+<pre class="r"><code>setMethod(&quot;name&lt;-&quot;, &quot;Person&quot;, function(x, value) {
+  x@name &lt;- value
+  validObject(x) # check if x is a valid object
+  x
+})
+
+name(john) &lt;- &quot;Jon Smythe&quot;
+name(john)</code></pre>
+<pre><code>## [1] &quot;Jon Smythe&quot;</code></pre>
+<pre class="r"><code>#name(john) &lt;- letters</code></pre>
+</div>
+<div id="exercises-2" class="section level2">
+<h2>15.4.5 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>Add <code>age()</code> accessors for the <code>Person</code>
+class.</li>
+</ol>
+<pre class="r"><code>setGeneric(&quot;age&quot;, function(x) standardGeneric(&quot;age&quot;))</code></pre>
+<pre><code>## [1] &quot;age&quot;</code></pre>
+<pre class="r"><code>setMethod(&quot;age&quot;, &quot;Person&quot;, function(x) x@age)
+
+age(john)</code></pre>
+<pre><code>## [1] 50</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>In the definition of the generic, why is it necessary to repeat the
+name of the generic twice?</li>
+</ol>
+<p><code>setGeneric()</code> creates the generic of the function while
+<code>standardGeneric</code> initiates method dispatch.</p>
+<ol start="3" style="list-style-type: decimal">
+<li>Why does the <code>show()</code> method defined in Section 15.4.3
+use <code>is(object)[[1]]</code>? (Hint: try printing the employee
+subclass.)</li>
+</ol>
+<pre class="r"><code>is(new(&quot;Employee&quot;))</code></pre>
+<pre><code>## [1] &quot;Employee&quot; &quot;Person&quot;</code></pre>
+<pre class="r"><code># if a subclass is provided, the class it inherits from is also printed
+# take is(new(&quot;Employee&quot;))[[1]] to ensure the subclass is only checked for</code></pre>
+<ol start="4" style="list-style-type: decimal">
+<li>What happens if you define a method with different argument names to
+the generic?</li>
+</ol>
+<pre class="r"><code>setClass(&quot;Person3&quot;, 
+  slots = c(
+    name = &quot;character&quot;, 
+    age = &quot;numeric&quot;
+  ), 
+  prototype = list(
+    name = NA_character_,
+    age = NA_real_
+  )
+)</code></pre>
+<pre class="r"><code>setGeneric(&quot;introduce&quot;, 
+  function(x) standardGeneric(&quot;introduce&quot;)
+)</code></pre>
+<pre><code>## [1] &quot;introduce&quot;</code></pre>
+<pre class="r"><code>setMethod(&quot;introduce&quot;, &quot;Person3&quot;, function(x) {
+  cat(&quot;My name is&quot;, x@name, &quot;and I am&quot;, x@age, &quot;years old.&quot;)
+})
+
+hadley &lt;- new(&quot;Person3&quot;, name = &quot;Hadley&quot;, age = 999)
+introduce(hadley)</code></pre>
+<pre><code>## My name is Hadley and I am 999 years old.</code></pre>
+<pre class="r"><code>setGeneric(&quot;introduce2&quot;, 
+  function(x) standardGeneric(&quot;introduce2&quot;)
+)</code></pre>
+<pre><code>## [1] &quot;introduce2&quot;</code></pre>
+<pre class="r"><code>setMethod(&quot;introduce2&quot;, &quot;Person3&quot;, function(obj) {
+  cat(&quot;My name is&quot;, obj@name, &quot;and I am&quot;, obj@age, &quot;years old.&quot;)
+})</code></pre>
+<pre><code>## Warning: For function &#39;introduce2&#39;, signature &#39;Person3&#39;: argument in method
+## definition changed from (obj) to (x)</code></pre>
+<pre class="r"><code>hadley2 &lt;- new(&quot;Person3&quot;, name = &quot;Hadley&quot;, age = 999)
+introduce2(hadley)</code></pre>
+<pre><code>## My name is Hadley and I am 999 years old.</code></pre>
+<pre class="r"><code># a warning is produced</code></pre>
+</div>
+</div>
+<div id="method-dispatch" class="section level1">
+<h1>15.5 Method dispatch</h1>
+<ul>
+<li><p>S4 important features: multiple inheritance and multiple
+dispatch</p></li>
+<li><p>recommended to keep dispatch simple by avoiding multiple
+inheritance and using multiple dispatch when absolutely
+necessary</p></li>
+</ul>
+<div id="single-dispatch" class="section level2">
+<h2>15.5.1 Single dispatch</h2>
+<ul>
+<li><p><code>f(...)</code> defines scope (ie:
+<code>f(;P -&gt; ;0 -&gt; :0)</code>)</p></li>
+<li><p>method graph displays all possible methods that can be defined
+(ie: ;P -&gt; ;0 -&gt; | :0 | ), where emoji in | has been defined with
+<code>setMethod()</code></p></li>
+<li><p>least general class -&gt; most general class; if no method is
+found, method dispatch fails and error is thrown</p></li>
+<li><p>always define methods for terminal nodes! (most general
+classes)</p></li>
+<li><p>pseudo-classes don’t exist but allow to define useful
+behaviors</p></li>
+<li><p><code>ANY</code> matches to any class (link to <code>ANY</code>
+is longer than links between other classes)</p></li>
+<li><p>ie: ;P -&gt; ;0 -&gt; :0 —&gt; ANY</p></li>
+<li><p><code>MISSING</code> matches whenever the argument is missing;
+important for <code>+</code> and <code>-</code> that use double
+dispatch</p></li>
+</ul>
+</div>
+<div id="multiple-inheritance" class="section level2">
+<h2>15.5.2 Multiple inheritance</h2>
+<ul>
+<li><p><code>f(B) -&gt; B)</code> &amp;
+<code>f(B) -&gt; :) -&gt; :0)</code></p></li>
+<li><p>closest method is selected when finding multiple methods</p></li>
+<li><p>actual details in multiple inheritance in S4 in
+<code>?Methods_Details</code></p></li>
+<li><p>when methods are the same distance, it is an ambiguous method
+(drawn with || B) ||); ambiguity is resolved by providing more precise
+methods</p></li>
+<li><p><code>ANY</code> will never contribute to ambiguity since it is
+further away</p></li>
+</ul>
+</div>
+<div id="exercises-3" class="section level2">
+<h2>15.5.5 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li><p>lol no</p></li>
+<li><p>no thanks</p></li>
+<li><p>nope</p></li>
+</ol>
+</div>
+</div>
+<div id="s4-and-s3" class="section level1">
+<h1>15.6 S4 and S3</h1>
+<div id="classes-1" class="section level2">
+<h2>15.6.1 Classes</h2>
+<ul>
+<li><p><code>slots</code> and <code>contains</code> can use S4, S3, or
+implicit classes</p></li>
+<li><p>must register with <code>setOldClass()</code> if using S3
+class</p></li>
+</ul>
+<pre class="r"><code>setOldClass(&quot;data.frame&quot;)
+setOldClass(c(&quot;ordered&quot;, &quot;factor&quot;))
+setOldClass(c(&quot;glm&quot;, &quot;lm&quot;))</code></pre>
+<pre class="r"><code># better to provide full S4 definition
+setClass(&quot;factor&quot;,
+  contains = &quot;integer&quot;,
+  slots = c(
+    levels = &quot;character&quot;
+  ),
+  prototype = structure(
+    integer(),
+    levels = character()
+  )
+)
+setOldClass(&quot;factor&quot;, S4Class = &quot;factor&quot;)</code></pre>
+<pre><code>## Warning in rm(list = what, pos = classWhere): object &#39;.__C__factor&#39; not found</code></pre>
+<ul>
+<li>if S4 object inherits from S3 class, has <code>.Data</code> virtual
+slot</li>
+</ul>
+<pre class="r"><code>RangedNumeric &lt;- setClass(
+  &quot;RangedNumeric&quot;,
+  contains = &quot;numeric&quot;,
+  slots = c(min = &quot;numeric&quot;, max = &quot;numeric&quot;),
+  prototype = structure(numeric(), min = NA_real_, max = NA_real_)
+)
+rn &lt;- RangedNumeric(1:10, min = 1, max = 10)
+rn@min</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>rn@.Data</code></pre>
+<pre><code>##  [1]  1  2  3  4  5  6  7  8  9 10</code></pre>
+</div>
+<div id="generics" class="section level2">
+<h2>15.6.2 Generics</h2>
+<ul>
+<li>can convert S3 generics to S4 generic</li>
+</ul>
+<pre class="r"><code>setGeneric(&quot;mean&quot;)</code></pre>
+<pre><code>## [1] &quot;mean&quot;</code></pre>
+<pre class="r"><code>selectMethod(&quot;mean&quot;, &quot;ANY&quot;) # existing method becomes default method</code></pre>
+<pre><code>## Method Definition (Class &quot;derivedDefaultMethod&quot;):
+## 
+## function (x, ...) 
+## UseMethod(&quot;mean&quot;)
+## &lt;bytecode: 0x0000023bfd895218&gt;
+## &lt;environment: namespace:base&gt;
+## 
+## Signatures:
+##         x    
+## target  &quot;ANY&quot;
+## defined &quot;ANY&quot;</code></pre>
+</div>
+<div id="exercises-4" class="section level2">
+<h2>15.6.3 Exercises</h2>
+<ol style="list-style-type: decimal">
+<li>What would a full <code>setOldClass()</code> definition look like
+for an ordered factor (ie: add <code>slots</code> and
+<code>prototype</code> the definition above)?</li>
+</ol>
+<pre class="r"><code>Factor &lt;- setClass(
+  &quot;Factor&quot;,
+  contains = &quot;factor&quot;,
+  slots = c(levels = &quot;character&quot;),
+  prototype = structure(integer(), levels = character())
+)</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Define a <code>length</code> method for the <code>Person</code>
+class.</li>
+</ol>
+<pre class="r"><code>setClass(&quot;Person4&quot;, 
+  slots = c(
+    name = &quot;character&quot;, 
+    age = &quot;numeric&quot;,
+    length = &quot;numeric&quot;
+  ), 
+  prototype = list(
+    name = NA_character_,
+    age = NA_real_,
+    length = NA_real_
+  )
+)
+
+setGeneric(&quot;length&quot;, function(x) standardGeneric(&quot;length&quot;))
+setMethod(&quot;length&quot;, &quot;Person4&quot;, function(x) x@length)
+
+setGeneric(&quot;length&lt;-&quot;, function(x, value) standardGeneric(&quot;length&lt;-&quot;))
+setMethod(&quot;length&lt;-&quot;, &quot;Person4&quot;, function(x, value) {
+  x@length &lt;- value
+  validObject(x) # check if x is a valid object
+  x
+})</code></pre>
 </div>
 </div>
 
