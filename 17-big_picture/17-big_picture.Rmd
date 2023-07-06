@@ -1,0 +1,180 @@
+---
+title: 'Chapter 17: Big Picture'
+author: "Paulo Magalang"
+date: "2023-06-29"
+output: html_document
+---
+
+```{r}
+library(rlang)
+library(lobstr)
+```
+
+
+## 17.2 Code is data
+
+* capture code with `rlang::expr()`; captured code are expressions
+
+```{r}
+expr(mean(x, na.rm = TRUE))
+expr(10 + 100 + 1000)
+```
+
+* need to use `enexpr()` to capture code passed to a function
+
+```{r}
+capture_it <- function(x) {
+  enexpr(x)
+}
+capture_it(a + b + c)
+```
+
+```{r}
+f <- expr(f(x = 1, y = 2))
+
+# Add a new argument
+f$z <- 3
+f
+
+# Or remove an argument:
+f[[2]] <- NULL
+f
+```
+
+## 17.3 Code is a tree
+
+* code is represented as an abstract syntax tree (AST)
+
+* can use `lobstr::ast()` to inspect tree
+
+```{r}
+lobstr::ast(f(a, "b"))
+```
+
+```{r}
+lobstr::ast(f1(f2(a, b), f3(1, f4(2))))
+```
+
+```{r}
+lobstr::ast(1 + 2 * 3)
+```
+
+## 17.4 Code can generate code
+
+* `call2()` constructs a function call from the function to call and its arguments
+
+```{r}
+call2("f", 1, 2, 3)
+call2("+", 1, call2("*", 2, 3))
+```
+
+* `!!` (bang-bang) is the unquote operator
+
+```{r}
+xx <- expr(x + x)
+yy <- expr(y + y)
+
+expr(!!xx / !!yy)
+```
+
+```{r}
+cv <- function(var) {
+  var <- enexpr(var)
+  expr(sd(!!var) / mean(!!var))
+}
+
+cv(x)
+cv(x + y)
+
+cv(`)`)
+```
+
+## 17.5 Evaluation runs code
+
+```{r}
+eval(expr(x + y), env(x = 1, y = 10))
+eval(expr(x + y), env(x = 2, y = 100))
+```
+
+```{r}
+x <- 10
+y <- 100
+eval(expr(x + y))
+```
+
+## 17.6 Customizing evaluation with functions
+
+```{r}
+string_math <- function(x) {
+  e <- env(
+    caller_env(),
+    `+` = function(x, y) paste0(x, y),
+    `*` = function(x, y) strrep(x, y)
+    # create environment where + and * works with strings
+  )
+
+  eval(enexpr(x), e)
+}
+
+name <- "Hadley"
+string_math("Hello " + name)
+string_math(("x" * 2 + "-y") * 3)
+```
+
+## 17.7 Customizing evaluation with data
+
+```{r}
+df <- data.frame(x = 1:5, y = sample(5))
+eval_tidy(expr(x + y), df)
+```
+
+```{r}
+with2 <- function(df, expr) {
+  eval_tidy(enexpr(expr), df)
+}
+
+with2(df, x + y)
+```
+
+## 17.8 Quosures
+
+```{r}
+with2 <- function(df, expr) {
+  a <- 1000
+  eval_tidy(enexpr(expr), df)
+}
+```
+
+```{r}
+df <- data.frame(x = 1:3)
+a <- 10
+with2(df, x + a) # a in the environment is 1000
+```
+
+```{r}
+with2 <- function(df, expr) {
+  a <- 1000
+  eval_tidy(enquo(expr), df)
+}
+
+with2(df, x + a)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
