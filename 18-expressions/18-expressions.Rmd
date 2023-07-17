@@ -780,6 +780,8 @@ find_assign_rec <- function(x) {
     call = find_assign_call(x)
   )
 }
+
+find_assign_rec(x)
 ```
 
 
